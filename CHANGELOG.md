@@ -5,6 +5,54 @@ All notable changes to the Conduit Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-10-25
+
+### Added
+- **Conduit.Transports.Core** - Core transport abstractions and infrastructure
+  - ITransport interface for all transport implementations
+  - ITransportSubscription with pause/resume capabilities
+  - TransportMessage envelope with headers, metadata, and expiration
+  - TransportStatistics for comprehensive metrics tracking
+  - TransportConfiguration with connection, protocol, security, and performance settings
+  - IConnectionManager and ITransportConnection for connection pooling
+  - TransportAdapterBase abstract class with template method pattern
+  - InMemoryTransport implementation for testing
+  - TransportType enumeration for all supported transports
+  - Support for 12 transport types (TCP, AMQP, gRPC, Kafka, Redis, WebSocket, HTTP, etc.)
+
+### Features
+- Unified transport abstraction for different protocols
+- Connection pooling with statistics and health monitoring
+- Message correlation, expiration, priority, and persistence
+- Comprehensive configuration (timeouts, retry, TLS, compression, batching)
+- Transport metrics (throughput, success rates, latency, connections)
+- Subscription management with source-specific filtering
+- Auto-reconnect with configurable retry and backoff
+- TLS/SSL support with certificate verification
+- Message compression with configurable threshold
+- Batching and pipelining support for performance
+- Thread-safe concurrent operations
+- Proper resource disposal with IDisposable pattern
+
+### Documentation
+- Comprehensive README for Transports.Core module
+- Usage examples for transport operations
+- Custom transport implementation guide
+- Configuration examples for all settings
+- Connection pooling examples
+- Best practices for production deployments
+
+### Dependencies
+- Microsoft.Extensions.Logging.Abstractions (>= 8.0.0)
+- Microsoft.Extensions.ObjectPool (>= 8.0.0)
+
+### Progress
+- 10 of 23 planned modules completed (~43%)
+- 90+ C# files created
+- ~15,000+ lines of code
+
+---
+
 ## [0.2.0] - 2025-10-25
 
 ### Added
@@ -178,8 +226,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **0.3.0** (2025-10-25) - Transport abstractions with connection pooling and InMemory implementation
 - **0.2.0** (2025-10-25) - Resilience module with circuit breaker, retry, bulkhead, timeout, and rate limiting
 - **0.1.0** (2025-10-25) - Initial development release with core modules
 
+[0.3.0]: https://github.com/conduit/conduit-dotnet/releases/tag/v0.3.0
 [0.2.0]: https://github.com/conduit/conduit-dotnet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/conduit/conduit-dotnet/releases/tag/v0.1.0
