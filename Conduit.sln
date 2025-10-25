@@ -58,6 +58,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrderService", "examples\Or
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conduit.Transports.Core", "src\Conduit.Transports.Core\Conduit.Transports.Core.csproj", "{EE608772-BCAE-4087-AF43-566E2F3EB304}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conduit.Transports.ActiveMq", "src\Conduit.Transports.ActiveMq\Conduit.Transports.ActiveMq.csproj", "{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{EE608772-BCAE-4087-AF43-566E2F3EB304}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE608772-BCAE-4087-AF43-566E2F3EB304}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EE608772-BCAE-4087-AF43-566E2F3EB304}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A1B2C3D4-E5F6-7890-1234-567890ABCDEF} = {8C1F5396-B94C-4A73-9B89-53E46E6E5E82}
@@ -102,5 +108,6 @@ Global
 		{78899001-1223-0123-4567-890123789012} = {34455667-7889-6789-0123-456789345678}
 		{90011223-3445-2345-6789-012345901235} = {89900112-2334-1234-5678-901234890123}
 		{EE608772-BCAE-4087-AF43-566E2F3EB304} = {8C1F5396-B94C-4A73-9B89-53E46E6E5E82}
+		{6DCEE070-C52B-4DC9-9B9D-387EE3DE8363} = {8C1F5396-B94C-4A73-9B89-53E46E6E5E82}
 	EndGlobalSection
 EndGlobal
