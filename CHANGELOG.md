@@ -20,6 +20,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TransportType enumeration for all supported transports
   - Support for 12 transport types (TCP, AMQP, gRPC, Kafka, Redis, WebSocket, HTTP, etc.)
 
+- **Conduit.Transports.ActiveMq** - ActiveMQ Artemis transport using AMQP 1.0
+  - ActiveMqTransport adapter implementing ITransport interface
+  - ActiveMqConfiguration with comprehensive Artemis settings
+  - ActiveMqMessageConverter for bidirectional NMS message conversion
+  - ActiveMqSubscription with pause/resume capabilities
+  - Queue and topic messaging support (point-to-point and pub/sub)
+  - Multiple acknowledgement modes (Auto, Client, DupsOk, Transactional, Individual)
+  - Persistent and non-persistent delivery modes
+  - Message priority (0-10 mapped to NMS MsgPriority)
+  - Message expiration and time-to-live (TTL)
+  - Redelivery policies with exponential backoff
+  - Temporary queue and topic support
+  - Request-response messaging patterns
+  - Message correlation and causation tracking
+  - Durable topic subscriptions
+  - Auto-reconnect on connection failures
+  - Prefetch policy for performance tuning
+
 ### Features
 - Unified transport abstraction for different protocols
 - Connection pooling with statistics and health monitoring
@@ -33,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batching and pipelining support for performance
 - Thread-safe concurrent operations
 - Proper resource disposal with IDisposable pattern
+- ActiveMQ Artemis integration with AMQP 1.0 protocol
+- NMS (Native Messaging Service) abstraction layer
+- Destination URI parsing (queue://, topic://, temp-queue://, temp-topic://)
+- Flow control with pause/resume subscriptions
 
 ### Documentation
 - Comprehensive README for Transports.Core module
@@ -41,15 +63,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration examples for all settings
 - Connection pooling examples
 - Best practices for production deployments
+- Comprehensive README for ActiveMq module
+- ActiveMQ Artemis quick start guide
+- Acknowledgement mode documentation
+- Request-response pattern examples
+- Message correlation examples
+- Troubleshooting guide for ActiveMQ
 
 ### Dependencies
 - Microsoft.Extensions.Logging.Abstractions (>= 8.0.0)
 - Microsoft.Extensions.ObjectPool (>= 8.0.0)
+- Apache.NMS.AMQP (>= 2.1.0) - For ActiveMQ Artemis transport
 
 ### Progress
-- 10 of 23 planned modules completed (~43%)
-- 90+ C# files created
-- ~15,000+ lines of code
+- 11 of 23 planned modules completed (~48%)
+- 96+ C# files created
+- ~16,500+ lines of code
 
 ---
 
