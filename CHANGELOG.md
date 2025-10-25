@@ -5,6 +5,53 @@ All notable changes to the Conduit Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-10-25
+
+### Added
+- **Conduit.Resilience** - Resilience patterns for fault tolerance
+  - Circuit Breaker policy with advanced failure rate threshold
+  - Retry policy with Fixed, Linear, and Exponential backoff strategies
+  - Bulkhead policy for resource isolation and concurrent execution limiting
+  - Timeout policy with Optimistic and Pessimistic cancellation strategies
+  - Rate Limiter policy with sliding window algorithm
+  - Resilience policy registry for centralized management
+  - Policy composition support (chaining multiple policies)
+  - Comprehensive metrics tracking for all policies
+  - ResilienceComponent for Conduit framework integration
+  - Factory methods for all policy types
+  - Default policy initialization from configuration
+  - Jitter support (±25%) to prevent thundering herd
+  - Thread-safe concurrent operations throughout
+  - IDisposable support for proper cleanup
+
+### Features
+- Circuit breaker with Closed, Open, HalfOpen, and Isolated states
+- Manual isolation capability for circuit breakers
+- Three retry backoff strategies with configurable multipliers
+- Bulkhead with queue management and overflow handling
+- Sliding window rate limiting with 10 segments for smooth behavior
+- Policy composition for nested resilience application
+- Integration with Polly 8.2.0 library
+
+### Documentation
+- Comprehensive README for Resilience module
+- Usage examples for all policy types
+- Configuration examples
+- Best practices and recommendations
+- Metrics collection documentation
+
+### Dependencies
+- Polly (>= 8.2.0)
+- Polly.Extensions (>= 8.2.0)
+- System.Threading.RateLimiting
+
+### Progress
+- 9 of 23 planned modules completed (~39%)
+- 80+ C# files created
+- ~13,000+ lines of code
+
+---
+
 ## [0.1.0] - 2025-10-25
 
 ### Added
@@ -131,6 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **0.2.0** (2025-10-25) - Resilience module with circuit breaker, retry, bulkhead, timeout, and rate limiting
 - **0.1.0** (2025-10-25) - Initial development release with core modules
 
+[0.2.0]: https://github.com/conduit/conduit-dotnet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/conduit/conduit-dotnet/releases/tag/v0.1.0

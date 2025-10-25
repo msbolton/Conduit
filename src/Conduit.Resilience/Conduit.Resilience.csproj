@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Resilience</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Resilience patterns including circuit breaker, retry, bulkhead, and timeout for the Conduit messaging framework</Description>
     <PackageTags>resilience;circuit-breaker;retry;bulkhead;timeout;polly</PackageTags>
