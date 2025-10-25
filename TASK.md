@@ -27,8 +27,8 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 | Conduit.Security | ✅ Complete | 100% | Auth, encryption, RBAC |
 | Conduit.Resilience | ✅ Complete | 100% | Circuit breakers, retry, bulkhead, timeout, rate limiting |
 | Conduit.Transports.Core | ✅ Complete | 100% | Transport abstractions, connection pooling, in-memory transport |
+| Conduit.Transports.ActiveMq | ✅ Complete | 100% | ActiveMQ Artemis transport with AMQP 1.0 |
 | Conduit.Persistence | ❌ Not Started | 0% | Database adapters |
-| Conduit.Transports.Amqp | ❌ Not Started | 0% | RabbitMQ implementation |
 | Conduit.Transports.Tcp | ❌ Not Started | 0% | TCP/Socket implementation |
 | Conduit.Transports.Grpc | ❌ Not Started | 0% | gRPC implementation |
 | Conduit.Saga | ❌ Not Started | 0% | Saga orchestration |
@@ -340,9 +340,46 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - Thread-safe concurrent operations throughout
 - Disposable pattern for proper resource cleanup
 
+#### 12. Conduit.Transports.ActiveMq Module
+**Location**: `/home/michaelbolton/Projects/Conduit/src/Conduit.Transports.ActiveMq/`
+**Status**: ✅ COMPLETE
+**Lines of Code**: ~1,532
+
+**Files Created**:
+- `Conduit.Transports.ActiveMq.csproj` - Project with Apache.NMS.AMQP 2.1.0 dependency
+- `ActiveMqConfiguration.cs` - ActiveMQ Artemis configuration with acknowledgement modes
+- `ActiveMqMessageConverter.cs` - Bidirectional conversion between TransportMessage and NMS IMessage
+- `ActiveMqTransport.cs` - Main transport adapter using AMQP 1.0 protocol
+- `ActiveMqSubscription.cs` - Subscription implementation with pause/resume
+- `README.md` - Comprehensive documentation with examples and best practices
+
+**Key Features Implemented**:
+- AMQP 1.0 protocol support via Apache.NMS.AMQP library
+- ActiveMQ Artemis broker connectivity
+- Queue and topic messaging (point-to-point and pub/sub)
+- Connection and session management with pooling support
+- Multiple acknowledgement modes (Auto, Client, DupsOk, Transactional, Individual)
+- Persistent and non-persistent message delivery
+- Message priority (0-10 mapped to NMS MsgPriority enum)
+- Message expiration and TTL support
+- Redelivery policies with exponential backoff
+- Temporary queue and topic support
+- Request-response messaging patterns
+- Message correlation and causation tracking
+- Custom headers and properties
+- Durable subscriptions for topics
+- Pause/resume subscription flow control
+- Auto-reconnect on connection failures
+- Prefetch policy for performance tuning
+- Async send support
+- Destination URI parsing (queue://, topic://, temp-queue://, temp-topic://)
+- Exception handling and logging throughout
+- Thread-safe concurrent operations
+- Proper resource cleanup with IAsyncDisposable
+
 ### ❌ NOT STARTED TASKS
 
-#### 12. Conduit.Persistence Module
+#### 13. Conduit.Persistence Module
 **Priority**: LOW
 **Dependencies**: Conduit.Api
 **Key Components to Implement**:
@@ -353,17 +390,6 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `RedisAdapter.cs` - Redis support
 - [ ] `CacheManager.cs` - Caching abstraction
 - [ ] `TransactionScope.cs` - Transaction management
-
-#### 13. Conduit.Transports.Amqp Module
-**Priority**: HIGH (User Selected)
-**Dependencies**: Conduit.Transports.Core
-**NuGet**: RabbitMQ.Client
-**Key Components to Implement**:
-- [ ] `AmqpTransportAdapter.cs` - AMQP adapter
-- [ ] `RabbitMqConnection.cs` - Connection management
-- [ ] `AmqpChannelPool.cs` - Channel pooling
-- [ ] `AmqpMessageConverter.cs` - Message conversion
-- [ ] `AmqpConfiguration.cs` - AMQP config
 
 #### 14. Conduit.Transports.Tcp Module
 **Priority**: HIGH (User Selected)
@@ -630,18 +656,19 @@ For questions about the conversion approach, refer to the original Java implemen
   - Sophisticated caching with eviction policies
 
 ### Progress Metrics
-- **Files Created**: 90+ C# files
-- **Modules Completed**: 10 of 23 (43%)
-- **Lines of Code**: ~15,000+
-- **Next Module**: Conduit.Transports.Amqp or Conduit.Transports.Tcp (ready to start)
+- **Files Created**: 96+ C# files
+- **Modules Completed**: 11 of 23 (48%)
+- **Lines of Code**: ~16,500+
+- **Next Module**: Conduit.Transports.Tcp or Conduit.Transports.Grpc (ready to start)
 
 ### Ready for Next Session
 - All documentation updated (TASK.md, CHANGELOG.md)
-- Clear path forward with specific transport implementations
+- Clear path forward with additional transport implementations
 - Core framework, resilience, and transport abstractions complete
-- Ready to implement transport layer
+- ActiveMQ Artemis transport implementation complete
+- Ready to implement TCP or gRPC transport
 
 ---
 *Last Updated: 2025-10-25*
 *Status: Active Development*
-*Completion: ~43% (10 of 23 modules)*
+*Completion: ~48% (11 of 23 modules)*
