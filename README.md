@@ -1,5 +1,9 @@
 # Conduit Framework for .NET
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](VERSION)
+[![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A comprehensive messaging and component framework for building scalable, maintainable microservices and distributed systems in C#/.NET.
 
 ## Overview
