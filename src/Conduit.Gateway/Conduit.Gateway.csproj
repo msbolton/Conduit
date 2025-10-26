@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Gateway</PackageId>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>API Gateway for the Conduit messaging framework with routing, load balancing, and rate limiting</Description>
     <PackageTags>conduit;gateway;api-gateway;routing;load-balancing;rate-limiting</PackageTags>

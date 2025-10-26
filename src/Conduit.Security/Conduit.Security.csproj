@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Security</PackageId>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Security services including authentication, authorization, and encryption for the Conduit messaging framework</Description>
     <PackageTags>security;authentication;authorization;encryption;jwt</PackageTags>

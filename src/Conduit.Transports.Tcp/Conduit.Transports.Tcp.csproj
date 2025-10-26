@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.Tcp</PackageId>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>TCP/Socket transport implementation for the Conduit messaging framework with framing protocol</Description>
     <PackageTags>conduit;messaging;tcp;socket;transport;framing</PackageTags>
