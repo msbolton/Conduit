@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Conduit.Gateway</PackageId>
+    <Version>0.3.0</Version>
+    <Authors>Conduit Contributors</Authors>
+    <Description>API Gateway for the Conduit messaging framework with routing, load balancing, and rate limiting</Description>
+    <PackageTags>conduit;gateway;api-gateway;routing;load-balancing;rate-limiting</PackageTags>
+    <RepositoryUrl>https://github.com/conduit/conduit-dotnet</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Conduit.Api\Conduit.Api.csproj" />
+    <ProjectReference Include="..\Conduit.Common\Conduit.Common.csproj" />
+    <ProjectReference Include="..\Conduit.Messaging\Conduit.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

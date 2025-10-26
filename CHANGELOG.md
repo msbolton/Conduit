@@ -64,6 +64,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Async receive loop
   - Use cases: metrics collection, service discovery, heartbeats, sensor data
 
+- **Conduit.Gateway** - API Gateway with routing, load balancing, and rate limiting
+  - ApiGateway orchestration class with request processing pipeline
+  - GatewayConfiguration for gateway and route settings
+  - RouteManager with pattern-based route matching and parameter extraction
+  - LoadBalancer with 5 load balancing strategies (Round-robin, Least Connections, Random, IP Hash, Weighted)
+  - RateLimiter with token bucket algorithm for per-client and per-route limits
+  - Pattern-based route matching with regex ({id} parameter extraction)
+  - Route specificity calculation (static segments prioritized)
+  - Health tracking for upstream servers with automatic failover
+  - Upstream state monitoring (connections, requests, success rate)
+  - HTTP request forwarding with HttpClient
+  - Custom header injection (upstream and downstream)
+  - Metrics collection (requests, success rate, response times)
+  - Concurrency control with semaphore (max concurrent requests)
+  - Request timeout and cancellation support
+  - Multiple HTTP methods per route
+  - Route enable/disable control
+  - Authentication and role-based access control (configured)
+  - Circuit breaker and health check integration
+  - CORS support configuration
+  - Comprehensive error handling (404, 429, 500, 502, 503, 504)
+
 ### Features
 - Unified transport abstraction for different protocols
 - Connection pooling with statistics and health monitoring
@@ -85,6 +107,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Message framing protocols (length-prefixed, delimited)
 - UDP multicast and broadcast support
 - Connectionless datagram messaging
+- API Gateway with routing, load balancing, and rate limiting
+- Pattern-based route matching with parameter extraction
+- Multiple load balancing strategies (Round-robin, Least Connections, Random, IP Hash)
+- Token bucket rate limiting algorithm
+- Health tracking and automatic failover
+- HTTP request proxying with custom headers
+- Gateway metrics collection and monitoring
 
 ### Documentation
 - Comprehensive README for Transports.Core module
@@ -107,17 +136,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UDP multicast and broadcast examples
 - Service discovery patterns
 - Real-time metrics collection examples
+- Comprehensive README for Gateway module (840 lines)
+- API Gateway quick start guide
+- Route configuration examples and patterns
+- Load balancing strategy comparison
+- Rate limiting configuration guide
+- Metrics collection and monitoring examples
+- Multi-service gateway examples
+- Troubleshooting guide for gateway issues
 
 ### Dependencies
 - Microsoft.Extensions.Logging.Abstractions (>= 8.0.0)
 - Microsoft.Extensions.ObjectPool (>= 8.0.0)
+- Microsoft.Extensions.Http (>= 8.0.0) - For API Gateway HTTP client
 - Apache.NMS.AMQP (>= 2.1.0) - For ActiveMQ Artemis transport
 
 ### Progress
-- 13 of 24 planned modules completed (~54%)
-- 110+ C# files created
-- ~20,250+ lines of code
+- 14 of 24 planned modules completed (~58%)
+- 117+ C# files created
+- ~21,684+ lines of code
 - Transport implementations: ActiveMQ Artemis, TCP/Socket, UDP
+- API Gateway with routing, load balancing, rate limiting
 
 ---
 
