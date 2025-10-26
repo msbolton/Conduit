@@ -33,9 +33,9 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 | Conduit.Gateway | ✅ Complete | 100% | API Gateway with routing, load balancing, rate limiting |
 | Conduit.Persistence | ✅ Complete | 100% | Data persistence with EF Core, MongoDB, Redis |
 | Conduit.Application | ✅ Complete | 100% | Application host with Generic Host integration |
+| Conduit.Metrics | ✅ Complete | 100% | Metrics collection and monitoring with Prometheus/OpenTelemetry |
 | Conduit.Transports.Grpc | ❌ Not Started | 0% | gRPC implementation |
 | Conduit.Saga | ❌ Not Started | 0% | Saga orchestration |
-| Conduit.Metrics | ❌ Not Started | 0% | Metrics collection |
 | OrderService Example | ❌ Not Started | 0% | Example implementation |
 | Unit Tests | ❌ Not Started | 0% | Test coverage |
 | Docker Configuration | ❌ Not Started | 0% | Containerization |
@@ -712,6 +712,159 @@ All Conduit modules are automatically registered and initialized:
 - Conduit.Security - JWT, encryption, RBAC
 - Conduit.Resilience - Circuit breaker, retry, timeout
 
+#### 18. Conduit.Metrics Module
+**Location**: `/home/michaelbolton/Projects/Conduit/src/Conduit.Metrics/`
+**Status**: ✅ COMPLETE
+**Lines of Code**: ~2,700
+
+**Files Created**:
+- `Conduit.Metrics.csproj` - Project with Prometheus, OpenTelemetry, and health check packages
+- `IMetricsCollector.cs` - Core metrics interfaces (ICounter, IGauge, IHistogram, ISummary, ITimer)
+- `MetricsConfiguration.cs` - Configuration for metrics providers and settings
+- `MetricsComponent.cs` - Conduit framework integration component
+- `MetricsReporter.cs` - Metrics aggregation and reporting service
+- `ServiceCollectionExtensions.cs` - DI registration extensions
+- `Prometheus/PrometheusMetricsCollector.cs` - Prometheus-based collector
+- `Prometheus/PrometheusMetricWrappers.cs` - Prometheus metric wrappers
+- `OpenTelemetry/OpenTelemetryMetricsCollector.cs` - OpenTelemetry collector with OTLP
+- `HealthChecks/IHealthCheck.cs` - Health check interfaces and results
+- `HealthChecks/HealthCheckService.cs` - Health check execution service
+- `HealthChecks/BuiltInHealthChecks.cs` - Built-in health checks (6 types)
+- `README.md` - Comprehensive documentation (900+ lines)
+
+**Key Features Implemented**:
+- Multiple metrics providers:
+  - Prometheus with scrape endpoint (/metrics)
+  - OpenTelemetry with OTLP export
+  - Console exporter for debugging
+  - Custom provider extensibility
+- Five metric types:
+  - Counter: Monotonically increasing values (requests, errors)
+  - Gauge: Values that can go up/down (queue size, memory)
+  - Histogram: Distribution tracking with configurable buckets (latency, size)
+  - Summary: Percentile calculations (p50, p90, p99)
+  - Timer: Duration measurements with automatic histogram backing
+- Prometheus integration:
+  - prometheus-net library (8.2.1)
+  - ASP.NET Core middleware
+  - Metrics scraping endpoint
+  - Standard Prometheus format export
+- OpenTelemetry integration:
+  - System.Diagnostics.Metrics support
+  - OTLP export protocol
+  - Runtime instrumentation
+  - Jaeger/Grafana compatibility
+- Health check system:
+  - IHealthCheck interface with async support
+  - HealthCheckService for execution and aggregation
+  - HealthCheckResult with status (Healthy/Degraded/Unhealthy)
+  - HealthReport with timing and detailed data
+  - Timeout support per check
+- Built-in health checks:
+  - ComponentRegistryHealthCheck - Component system status
+  - MessageBusHealthCheck - Message bus connectivity
+  - MemoryHealthCheck - Memory usage monitoring
+  - ThreadPoolHealthCheck - Thread pool utilization
+  - StartupHealthCheck - Startup readiness probe
+  - LivenessHealthCheck - Liveness probe
+- Custom health check support:
+  - Generic registration (AddConduitHealthCheck<T>)
+  - Factory-based registration
+  - Tag-based categorization
+  - Configurable timeouts and failure statuses
+- Metrics reporter:
+  - Snapshot capture of all metrics
+  - JSON export functionality
+  - Console reporting for debugging
+  - Timestamp tracking
+- Configuration options:
+  - Enable/disable metrics collection
+  - Metric name prefix
+  - Provider selection (Prometheus/OpenTelemetry/Both/Custom)
+  - Prometheus endpoint and port configuration
+  - OpenTelemetry endpoint URL
+  - Console exporter toggle
+  - Runtime metrics toggle
+  - Health check endpoints (/health, /health/detailed)
+  - Default histogram buckets (customizable)
+  - Collection interval
+  - Global labels for all metrics
+  - Automatic instrumentation toggle
+  - Health check timeout
+- Integration features:
+  - ASP.NET Core middleware support
+  - Microsoft.Extensions.Diagnostics.HealthChecks integration
+  - Kubernetes probe compatibility
+  - Automatic framework instrumentation
+  - Global labels and tagging
+  - Low cardinality enforcement
+  - Thread-safe concurrent operations
+- Label support:
+  - Dynamic label names and values
+  - Label cardinality management
+  - Global labels applied to all metrics
+  - Per-metric label customization
+
+**Metric Collector API**:
+- Counter(name, help, labelNames) - Create counter
+- Gauge(name, help, labelNames) - Create gauge
+- Histogram(name, help, buckets, labelNames) - Create histogram
+- Summary(name, help, labelNames) - Create summary
+- Timer(name, help, labelNames) - Create timer
+- Record(name, value, type, labels) - Record metric value
+- Increment(name, value, labels) - Increment counter
+- Set(name, value, labels) - Set gauge value
+- Measure(name, labels) - Measure duration (IDisposable)
+- GetAllMetrics() - Retrieve all metrics
+- Clear() - Clear all metrics
+
+**Health Check Features**:
+- Async health check execution
+- Parallel health check processing
+- Timeout enforcement with cancellation
+- Aggregate health status calculation
+- Detailed health reports with:
+  - Individual check results
+  - Execution duration per check
+  - Total duration
+  - Custom data dictionary
+  - Exception details
+- Health status levels:
+  - Healthy - All checks passed
+  - Degraded - Some checks degraded but operational
+  - Unhealthy - Critical checks failed
+- Kubernetes integration:
+  - /health - Readiness probe
+  - /health/detailed - Detailed health information
+  - Startup probe support
+  - Liveness probe support
+
+**Prometheus Features**:
+- Standard Prometheus metric format
+- Scrape endpoint configuration
+- Histogram with configurable buckets
+- Summary with quantiles
+- Metric name sanitization (snake_case)
+- Label handling
+- Help text documentation
+- Thread-safe metric registration
+
+**OpenTelemetry Features**:
+- Meter-based metrics
+- OTLP export protocol
+- Runtime instrumentation (GC, CPU, memory)
+- Console exporter for debugging
+- Observable gauges
+- Histogram recording
+- Tag-based labeling
+
+**Best Practices Enforced**:
+- Metric naming conventions (snake_case, base units)
+- Low cardinality labels (avoid user IDs, timestamps, UUIDs)
+- Metric caching for performance
+- Thread-safe operations
+- Proper resource disposal
+
 ### ❌ NOT STARTED TASKS
 
 #### 18. Conduit.Transports.Grpc Module
@@ -735,18 +888,7 @@ All Conduit modules are automatically registered and initialized:
 - [ ] `CompensationManager.cs` - Compensation logic
 - [ ] `SagaRepository.cs` - Saga persistence
 
-#### 20. Conduit.Metrics Module
-**Priority**: MEDIUM
-**Dependencies**: Conduit.Api
-**NuGet**: prometheus-net
-**Key Components to Implement**:
-- [ ] `PrometheusMetricsCollector.cs` - Prometheus implementation
-- [ ] `MetricRegistry.cs` - Metric registration
-- [ ] `MetricExporter.cs` - Metric export
-- [ ] `HealthCheck.cs` - Health checks
-- [ ] `Dashboard.cs` - Metrics dashboard
-
-#### 21. OrderService Example
+#### 20. OrderService Example
 **Priority**: LOW
 **Location**: `/home/michaelbolton/Projects/Conduit/examples/OrderService/`
 **Components to Implement**:
@@ -948,19 +1090,20 @@ For questions about the conversion approach, refer to the original Java implemen
   - Sophisticated caching with eviction policies
 
 ### Progress Metrics
-- **Files Created**: 139+ C# files
-- **Modules Completed**: 16 of 24 (67%)
-- **Lines of Code**: ~24,899+
-- **Next Module**: Conduit.Metrics, OrderService Example, or Unit Tests
+- **Files Created**: 152+ C# files
+- **Modules Completed**: 17 of 24 (71%)
+- **Lines of Code**: ~27,600+
+- **Next Module**: Conduit.Saga, OrderService Example, or Unit Tests
 
 ### Ready for Next Session
 - All documentation updated (TASK.md, CHANGELOG.md)
-- Clear path forward with additional transport implementations
+- Complete observability framework with Prometheus and OpenTelemetry
 - Core framework, resilience, and transport abstractions complete
 - Three transport implementations complete (ActiveMQ, TCP, UDP)
-- Ready to implement gRPC transport or persistence layer
+- Metrics and health checks ready for production monitoring
+- Ready to implement gRPC transport, saga orchestration, or example applications
 
 ---
-*Last Updated: 2025-10-25*
+*Last Updated: 2025-10-26*
 *Status: Active Development*
-*Completion: ~54% (13 of 24 modules)*
+*Completion: ~71% (17 of 24 modules)*
