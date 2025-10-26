@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.Core</PackageId>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Core transport abstractions and connection management for the Conduit messaging framework</Description>
     <PackageTags>conduit;messaging;transport;networking;connection-pooling</PackageTags>

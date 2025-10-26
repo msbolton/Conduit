@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <Authors>Conduit Framework</Authors>
     <Description>Metrics collection and monitoring for Conduit framework with Prometheus and OpenTelemetry support</Description>
   </PropertyGroup>

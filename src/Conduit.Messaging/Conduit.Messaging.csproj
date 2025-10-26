@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Messaging</PackageId>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Message bus and routing implementation for the Conduit messaging framework</Description>
     <PackageTags>messaging;messagebus;routing;handlers;pubsub</PackageTags>
