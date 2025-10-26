@@ -32,10 +32,10 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 | Conduit.Transports.Udp | ✅ Complete | 100% | UDP transport with multicast and broadcast support |
 | Conduit.Gateway | ✅ Complete | 100% | API Gateway with routing, load balancing, rate limiting |
 | Conduit.Persistence | ✅ Complete | 100% | Data persistence with EF Core, MongoDB, Redis |
+| Conduit.Application | ✅ Complete | 100% | Application host with Generic Host integration |
 | Conduit.Transports.Grpc | ❌ Not Started | 0% | gRPC implementation |
 | Conduit.Saga | ❌ Not Started | 0% | Saga orchestration |
 | Conduit.Metrics | ❌ Not Started | 0% | Metrics collection |
-| Conduit.Application | ❌ Not Started | 0% | Application host |
 | OrderService Example | ❌ Not Started | 0% | Example implementation |
 | Unit Tests | ❌ Not Started | 0% | Test coverage |
 | Docker Configuration | ❌ Not Started | 0% | Containerization |
@@ -618,9 +618,103 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - Factory pattern (repository creation)
 - Transaction scope pattern
 
+#### 17. Conduit.Application Module
+**Location**: `/home/michaelbolton/Projects/Conduit/src/Conduit.Application/`
+**Status**: ✅ COMPLETE
+**Lines of Code**: ~550
+
+**Files Created**:
+- `Conduit.Application.csproj` - Project with Generic Host and configuration packages
+- `ConduitConfiguration.cs` - Application configuration model
+- `ConduitHost.cs` - Main hosted service with lifecycle management
+- `ConduitHostBuilder.cs` - Fluent builder API
+- `ServiceCollectionExtensions.cs` - DI registration for all modules
+- `appsettings.json` - Example configuration file
+- `Program.cs.example` - Complete application example
+- `README.md` - Comprehensive documentation (750 lines)
+
+**Key Features Implemented**:
+- Generic Host integration (Microsoft.Extensions.Hosting)
+- IHostedService implementation for application lifecycle
+- Fluent builder API for configuration
+- Comprehensive configuration system:
+  - JSON configuration files (appsettings.json)
+  - Environment-specific configuration (Development, Production)
+  - Environment variables with prefix support
+  - Command-line arguments
+  - Hierarchical configuration (double underscore separator)
+- Dependency injection registration:
+  - Automatic registration of all Conduit modules
+  - Core services (ComponentRegistry, LifecycleManager, MetricsCollector)
+  - Messaging services (MessageBus, HandlerRegistry, SubscriptionManager)
+  - Serialization services (JSON, MessagePack)
+  - Security services (JWT, Encryption, AccessControl)
+  - Resilience services (CircuitBreaker, Retry, Timeout)
+- Service collection extensions:
+  - AddConduitServices - Registers all framework services
+  - AddConduitCore - Core component system
+  - AddConduitMessaging - Message bus and handlers
+  - AddConduitSerialization - Serializers
+  - AddConduitSecurity - Authentication and authorization
+  - AddConduitResilience - Resilience policies
+- Handler registration helpers:
+  - AddCommandHandler<TCommand, TResponse, THandler>
+  - AddEventHandler<TEvent, THandler>
+  - AddQueryHandler<TQuery, TResult, THandler>
+- Application lifecycle management:
+  - Graceful startup and initialization
+  - Component discovery and registration
+  - Message bus initialization
+  - Graceful shutdown and cleanup
+- Configuration sections:
+  - ComponentDiscovery (assembly scanning, hot reload)
+  - Messaging (max concurrent, retry, DLQ)
+  - Security (JWT, encryption)
+  - Resilience (circuit breaker, retry, timeout)
+  - Features (feature flag dictionary)
+  - CustomSettings (application-specific)
+- Logging integration:
+  - Console provider
+  - Debug provider
+  - Configurable log levels
+  - Structured logging support
+- Feature flags support
+- Environment detection (Development, Staging, Production)
+- Content root configuration
+- Application metadata (name, version)
+
+**Builder API**:
+- CreateDefaultBuilder() - Creates builder with defaults
+- ConfigureConduit() - Configure Conduit settings
+- ConfigureServices() - Register custom services
+- ConfigureAppConfiguration() - Add configuration sources
+- ConfigureLogging() - Configure logging
+- UseEnvironment() - Set environment
+- UseContentRoot() - Set content root
+- AddJsonFile() - Add JSON configuration
+- AddEnvironmentVariables() - Add environment variables
+- AddCommandLine() - Add command-line args
+- Build() - Build and return IHost
+
+**Configuration Precedence**:
+1. appsettings.json (base)
+2. appsettings.{Environment}.json (environment-specific)
+3. Environment variables
+4. Command-line arguments
+5. ConfigureConduit() code
+
+**Module Integration**:
+All Conduit modules are automatically registered and initialized:
+- Conduit.Core - Component system
+- Conduit.Components - Component factory and container
+- Conduit.Messaging - Message bus and CQRS
+- Conduit.Serialization - JSON and MessagePack
+- Conduit.Security - JWT, encryption, RBAC
+- Conduit.Resilience - Circuit breaker, retry, timeout
+
 ### ❌ NOT STARTED TASKS
 
-#### 17. Conduit.Transports.Grpc Module
+#### 18. Conduit.Transports.Grpc Module
 **Priority**: HIGH (User Selected)
 **Dependencies**: Conduit.Transports.Core
 **NuGet**: Grpc.Net.Client, Google.Protobuf
@@ -631,7 +725,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `GrpcClient.cs` - gRPC client
 - [ ] `GrpcInterceptor.cs` - gRPC interceptors
 
-#### 18. Conduit.Saga Module
+#### 19. Conduit.Saga Module
 **Priority**: LOW
 **Dependencies**: Conduit.Messaging, Conduit.Persistence
 **Key Components to Implement**:
@@ -641,7 +735,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `CompensationManager.cs` - Compensation logic
 - [ ] `SagaRepository.cs` - Saga persistence
 
-#### 19. Conduit.Metrics Module
+#### 20. Conduit.Metrics Module
 **Priority**: MEDIUM
 **Dependencies**: Conduit.Api
 **NuGet**: prometheus-net
@@ -651,17 +745,6 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `MetricExporter.cs` - Metric export
 - [ ] `HealthCheck.cs` - Health checks
 - [ ] `Dashboard.cs` - Metrics dashboard
-
-#### 20. Conduit.Application Module
-**Priority**: HIGH
-**Dependencies**: All modules
-**Key Components to Implement**:
-- [ ] `ConduitHost.cs` - Application host
-- [ ] `HostBuilder.cs` - Host configuration
-- [ ] `Startup.cs` - Application startup
-- [ ] `appsettings.json` - Configuration file
-- [ ] `Program.cs` - Entry point
-- [ ] Integration with Generic Host
 
 #### 21. OrderService Example
 **Priority**: LOW
@@ -865,10 +948,10 @@ For questions about the conversion approach, refer to the original Java implemen
   - Sophisticated caching with eviction policies
 
 ### Progress Metrics
-- **Files Created**: 131+ C# files
-- **Modules Completed**: 15 of 24 (63%)
-- **Lines of Code**: ~23,349+
-- **Next Module**: Conduit.Transports.Grpc, Conduit.Metrics, or Conduit.Application
+- **Files Created**: 139+ C# files
+- **Modules Completed**: 16 of 24 (67%)
+- **Lines of Code**: ~24,899+
+- **Next Module**: Conduit.Metrics, OrderService Example, or Unit Tests
 
 ### Ready for Next Session
 - All documentation updated (TASK.md, CHANGELOG.md)

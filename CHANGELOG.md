@@ -5,13 +5,65 @@ All notable changes to the Conduit Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - Unreleased
+## [0.6.0] - Unreleased
 
 ### Added
 - (Future additions will be listed here)
 
 ### Changed
-- All project versions bumped to 0.5.0
+- All project versions bumped to 0.6.0
+
+---
+
+## [0.5.0] - 2025-10-26
+
+### Added
+- **Conduit.Application** - Application host and bootstrap
+  - Generic Host integration with Microsoft.Extensions.Hosting
+  - ConduitHost implementing IHostedService for lifecycle management
+  - ConduitHostBuilder with fluent API for application configuration
+  - Comprehensive configuration system (JSON, environment variables, command line)
+  - Dependency injection registration for all Conduit modules
+  - Service collection extensions for easy module setup
+  - Handler registration helpers (AddCommandHandler, AddEventHandler, AddQueryHandler)
+  - Component discovery and initialization
+  - Graceful startup and shutdown
+  - Feature flag support
+  - Environment-specific configuration (Development, Staging, Production)
+  - Logging integration with multiple providers
+  - appsettings.json example configuration
+
+### Features
+- Full Microsoft Generic Host integration
+- Automatic DI registration for all modules
+- Configuration precedence: JSON → Env Vars → Command Line
+- Hierarchical configuration with double underscore separator
+- Conditional module initialization based on configuration
+- Application lifecycle events (Started, Stopping, Stopped)
+- Default resilience policies (circuit breaker, retry, timeout)
+- Default serializers (JSON, MessagePack)
+- Structured logging with configurable levels
+
+### Documentation
+- Comprehensive README for Application module (750 lines)
+- Quick start examples
+- Configuration guide (file, code, environment variables)
+- Complete builder API documentation
+- Handler registration patterns
+- Environment-specific configuration examples
+- Best practices and troubleshooting
+
+### Dependencies
+- Microsoft.Extensions.Hosting (>= 8.0.0)
+- Microsoft.Extensions.Configuration.Json (>= 8.0.0)
+- Microsoft.Extensions.DependencyInjection (>= 8.0.0)
+- Microsoft.Extensions.Logging.Console (>= 8.0.0)
+
+### Progress
+- 16 of 24 planned modules completed (~67%)
+- 139+ C# files created
+- ~24,899+ lines of code
+- Complete application framework ready for production use
 
 ---
 
