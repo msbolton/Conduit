@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.Udp</PackageId>
-    <Version>0.5.0</Version>
+    <Version>0.7.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>UDP transport implementation for the Conduit messaging framework with multicast and broadcast support</Description>
     <PackageTags>conduit;messaging;udp;datagram;multicast;broadcast</PackageTags>
