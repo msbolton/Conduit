@@ -5,13 +5,69 @@ All notable changes to the Conduit Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - Unreleased
+## [0.5.0] - Unreleased
 
 ### Added
 - (Future additions will be listed here)
 
 ### Changed
-- All project versions bumped to 0.4.0
+- All project versions bumped to 0.5.0
+
+---
+
+## [0.4.0] - 2025-10-26
+
+### Added
+- **Conduit.Persistence** - Data persistence layer with multiple database support
+  - Generic repository pattern with CRUD operations
+  - Entity Framework Core support with PostgreSQL
+  - MongoDB document database support
+  - Redis caching with cache provider
+  - Unit of Work pattern with transaction management
+  - Automatic auditing (CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+  - Soft delete support (IsDeleted, DeletedAt, DeletedBy)
+  - Pagination support with filtering and ordering
+  - LINQ queryable repositories for complex queries
+  - Caching repository decorator pattern
+  - Cache invalidation strategies
+  - TransactionScope for automatic rollback
+  - Global query filters for soft-deleted entities
+  - Bulk operations (AddRange, UpdateRange, DeleteRange)
+
+### Features
+- Repository pattern with rich querying capabilities
+- Support for multiple database technologies
+- Distributed caching with Redis
+- Automatic entity auditing and soft delete
+- Transaction management with isolation levels
+- Connection pooling for PostgreSQL and MongoDB
+- Cache-aside pattern with automatic invalidation
+- Optimistic concurrency with EF Core
+- Document storage with MongoDB
+- Thread-safe concurrent operations
+
+### Documentation
+- Comprehensive README for Persistence module (840 lines)
+- Entity definition examples
+- Repository usage patterns
+- Unit of Work examples
+- Caching strategies
+- Database configuration guides
+- Best practices for data access
+- Performance tuning recommendations
+
+### Dependencies
+- Microsoft.EntityFrameworkCore (>= 8.0.0)
+- Microsoft.EntityFrameworkCore.Relational (>= 8.0.0)
+- Npgsql.EntityFrameworkCore.PostgreSQL (>= 8.0.0)
+- MongoDB.Driver (>= 2.28.0)
+- StackExchange.Redis (>= 2.8.0)
+
+### Progress
+- 15 of 24 planned modules completed (~63%)
+- 131+ C# files created
+- ~23,349+ lines of code
+- Database support: PostgreSQL, MongoDB, Redis
 
 ---
 
