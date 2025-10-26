@@ -468,6 +468,26 @@ await messageBus.SendAsync(command); // Routed through ActiveMQ
 9. **Handle Exceptions** - Implement proper error handling in message handlers
 10. **Use Correlation IDs** - Track related messages across services
 
+## Security Considerations
+
+⚠️ **Known Vulnerability (CVE-2025-54539)**
+
+The Apache.NMS.AMQP library (versions up to 2.3.0) has a known critical vulnerability related to deserialization of untrusted data that could lead to remote code execution.
+
+**Mitigation:**
+- Only connect to **trusted AMQP servers** that you control
+- Do not connect to public or untrusted ActiveMQ/AMQP brokers
+- Use network segmentation and firewall rules to restrict broker access
+- Monitor for security updates to Apache.NMS.AMQP
+
+**For Production:**
+- Deploy ActiveMQ Artemis in a secure, isolated network
+- Use TLS/SSL encryption for all connections
+- Implement strong authentication (username/password or certificates)
+- Regularly update to the latest patched versions when available
+
+This vulnerability only affects clients connecting to malicious or compromised AMQP servers. In typical enterprise deployments where you control the broker infrastructure, the risk is minimal.
+
 ## Troubleshooting
 
 ### Connection Refused
