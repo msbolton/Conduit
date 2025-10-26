@@ -38,6 +38,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-reconnect on connection failures
   - Prefetch policy for performance tuning
 
+- **Conduit.Transports.Tcp** - TCP/Socket transport with connection pooling
+  - TcpTransport adapter with server and client modes
+  - TcpConfiguration with comprehensive socket options
+  - MessageFramer with multiple framing protocols (length-prefixed, newline, CRLF, custom)
+  - TcpServer for accepting and managing connections
+  - TcpClientManager with connection pooling
+  - TcpConnection wrapper with heartbeat monitoring
+  - Server mode: accept connections, broadcast, send to specific connection
+  - Client mode: connection pooling with automatic reuse
+  - Socket optimization (NoDelay, keep-alive, buffer tuning, linger)
+  - Connection lifecycle events (accepted, closed)
+  - Heartbeat and keep-alive monitoring
+  - Configurable connection limits and backlog
+
+- **Conduit.Transports.Udp** - UDP transport with multicast and broadcast
+  - UdpTransport for connectionless messaging
+  - UdpConfiguration with multicast/broadcast settings
+  - Multicast group support (join/leave, TTL, loopback, interface selection)
+  - Broadcast support for local network discovery
+  - IPv4 and IPv6 dual-mode support
+  - Message fragmentation for large payloads (optional)
+  - Configurable datagram size (up to 65507 bytes)
+  - Buffer size tuning (send/receive)
+  - Async receive loop
+  - Use cases: metrics collection, service discovery, heartbeats, sensor data
+
 ### Features
 - Unified transport abstraction for different protocols
 - Connection pooling with statistics and health monitoring
@@ -55,6 +81,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - NMS (Native Messaging Service) abstraction layer
 - Destination URI parsing (queue://, topic://, temp-queue://, temp-topic://)
 - Flow control with pause/resume subscriptions
+- TCP server/client modes with connection pooling
+- Message framing protocols (length-prefixed, delimited)
+- UDP multicast and broadcast support
+- Connectionless datagram messaging
 
 ### Documentation
 - Comprehensive README for Transports.Core module
@@ -69,6 +99,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Request-response pattern examples
 - Message correlation examples
 - Troubleshooting guide for ActiveMQ
+- Comprehensive README for Tcp module (682 lines)
+- TCP server/client examples and patterns
+- Message framing protocol documentation
+- Connection pooling examples
+- Comprehensive README for Udp module (829 lines)
+- UDP multicast and broadcast examples
+- Service discovery patterns
+- Real-time metrics collection examples
 
 ### Dependencies
 - Microsoft.Extensions.Logging.Abstractions (>= 8.0.0)
@@ -76,9 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Apache.NMS.AMQP (>= 2.1.0) - For ActiveMQ Artemis transport
 
 ### Progress
-- 11 of 23 planned modules completed (~48%)
-- 96+ C# files created
-- ~16,500+ lines of code
+- 13 of 24 planned modules completed (~54%)
+- 110+ C# files created
+- ~20,250+ lines of code
+- Transport implementations: ActiveMQ Artemis, TCP/Socket, UDP
 
 ---
 

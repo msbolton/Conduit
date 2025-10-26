@@ -28,8 +28,9 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 | Conduit.Resilience | ✅ Complete | 100% | Circuit breakers, retry, bulkhead, timeout, rate limiting |
 | Conduit.Transports.Core | ✅ Complete | 100% | Transport abstractions, connection pooling, in-memory transport |
 | Conduit.Transports.ActiveMq | ✅ Complete | 100% | ActiveMQ Artemis transport with AMQP 1.0 |
+| Conduit.Transports.Tcp | ✅ Complete | 100% | TCP/Socket transport with connection pooling and framing |
+| Conduit.Transports.Udp | ✅ Complete | 100% | UDP transport with multicast and broadcast support |
 | Conduit.Persistence | ❌ Not Started | 0% | Database adapters |
-| Conduit.Transports.Tcp | ❌ Not Started | 0% | TCP/Socket implementation |
 | Conduit.Transports.Grpc | ❌ Not Started | 0% | gRPC implementation |
 | Conduit.Saga | ❌ Not Started | 0% | Saga orchestration |
 | Conduit.Gateway | ❌ Not Started | 0% | API Gateway |
@@ -377,9 +378,87 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - Thread-safe concurrent operations
 - Proper resource cleanup with IAsyncDisposable
 
+#### 13. Conduit.Transports.Tcp Module
+**Location**: `/home/michaelbolton/Projects/Conduit/src/Conduit.Transports.Tcp/`
+**Status**: ✅ COMPLETE
+**Lines of Code**: ~2,216
+
+**Files Created**:
+- `Conduit.Transports.Tcp.csproj` - Project configuration
+- `TcpConfiguration.cs` - Comprehensive TCP configuration with socket options
+- `MessageFramer.cs` - Message framing (length-prefixed, newline, CRLF, custom delimiter)
+- `TcpConnection.cs` - Connection wrapper with heartbeat monitoring
+- `TcpServer.cs` - TCP server with connection management
+- `TcpClientManager.cs` - Connection pooling for clients
+- `TcpTransport.cs` - Main transport adapter (server/client modes)
+- `TcpSubscription.cs` - Subscription implementation
+- `README.md` - Comprehensive documentation (682 lines)
+
+**Key Features Implemented**:
+- Server and client modes (dual-purpose transport)
+- Connection pooling with semaphore-based slot management
+- Message framing protocols:
+  - Length-prefixed (4-byte header, binary-safe, recommended)
+  - Newline-delimited (\n for text protocols)
+  - CRLF-delimited (\r\n for HTTP-style)
+  - Custom delimiter support
+- Heartbeat and keep-alive monitoring
+- Socket optimization (NoDelay, keep-alive, buffer sizes, linger)
+- Server: accept connections, broadcast to all clients, send to specific connection
+- Client: connection pooling, automatic reuse, timeout handling
+- Pause/resume subscription flow control
+- Connection lifecycle events (accepted, closed)
+- Auto-reconnect support (via configuration)
+- Configurable buffer sizes (send/receive)
+- Connection limits and backlog management
+- Async send/receive operations
+- Thread-safe concurrent operations
+- Proper resource cleanup (IAsyncDisposable)
+
+#### 14. Conduit.Transports.Udp Module
+**Location**: `/home/michaelbolton/Projects/Conduit/src/Conduit.Transports.Udp/`
+**Status**: ✅ COMPLETE
+**Lines of Code**: ~1,534
+
+**Files Created**:
+- `Conduit.Transports.Udp.csproj` - Project configuration
+- `UdpConfiguration.cs` - UDP configuration with multicast/broadcast settings
+- `UdpSubscription.cs` - Subscription implementation
+- `UdpTransport.cs` - Main transport adapter with datagram handling
+- `README.md` - Comprehensive documentation (829 lines)
+
+**Key Features Implemented**:
+- Connectionless UDP messaging (fire-and-forget)
+- Multicast group support:
+  - Join/leave multicast groups
+  - Configurable TTL (time-to-live)
+  - Multicast loopback control
+  - Interface selection for multicast
+- Broadcast support (local network 255.255.255.255)
+- IPv4 and IPv6 support (dual-mode)
+- Configurable datagram size (up to 65507 bytes)
+- Message fragmentation for large payloads (optional)
+- Buffer size tuning (send/receive)
+- Socket options (ReuseAddress, ExclusiveAddressUse)
+- Pause/resume subscription flow control
+- Source-based subscription filtering
+- Async receive loop
+- Configurable timeouts (send/receive)
+- Thread-safe concurrent operations
+- Proper resource cleanup (IAsyncDisposable)
+
+**Use Cases**:
+- Real-time metrics collection (StatsD-style)
+- Service discovery (multicast announcements)
+- Heartbeat/keep-alive monitoring
+- Sensor data aggregation
+- Low-latency notifications
+- Time-sensitive updates
+- Broadcast discovery
+
 ### ❌ NOT STARTED TASKS
 
-#### 13. Conduit.Persistence Module
+#### 15. Conduit.Persistence Module
 **Priority**: LOW
 **Dependencies**: Conduit.Api
 **Key Components to Implement**:
@@ -391,17 +470,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `CacheManager.cs` - Caching abstraction
 - [ ] `TransactionScope.cs` - Transaction management
 
-#### 14. Conduit.Transports.Tcp Module
-**Priority**: HIGH (User Selected)
-**Dependencies**: Conduit.Transports.Core
-**Key Components to Implement**:
-- [ ] `TcpTransportAdapter.cs` - TCP adapter
-- [ ] `TcpServer.cs` - TCP server implementation
-- [ ] `TcpClient.cs` - TCP client implementation
-- [ ] `SocketPool.cs` - Socket pooling
-- [ ] `FramingProtocol.cs` - Message framing
-
-#### 15. Conduit.Transports.Grpc Module
+#### 16. Conduit.Transports.Grpc Module
 **Priority**: HIGH (User Selected)
 **Dependencies**: Conduit.Transports.Core
 **NuGet**: Grpc.Net.Client, Google.Protobuf
@@ -412,7 +481,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `GrpcClient.cs` - gRPC client
 - [ ] `GrpcInterceptor.cs` - gRPC interceptors
 
-#### 16. Conduit.Saga Module
+#### 17. Conduit.Saga Module
 **Priority**: LOW
 **Dependencies**: Conduit.Messaging, Conduit.Persistence
 **Key Components to Implement**:
@@ -422,7 +491,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `CompensationManager.cs` - Compensation logic
 - [ ] `SagaRepository.cs` - Saga persistence
 
-#### 17. Conduit.Gateway Module
+#### 18. Conduit.Gateway Module
 **Priority**: LOW
 **Dependencies**: Conduit.Messaging
 **Key Components to Implement**:
@@ -432,7 +501,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `RateLimiter.cs` - Rate limiting
 - [ ] `RequestAggregator.cs` - Request aggregation
 
-#### 18. Conduit.Metrics Module
+#### 19. Conduit.Metrics Module
 **Priority**: MEDIUM
 **Dependencies**: Conduit.Api
 **NuGet**: prometheus-net
@@ -443,7 +512,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `HealthCheck.cs` - Health checks
 - [ ] `Dashboard.cs` - Metrics dashboard
 
-#### 19. Conduit.Application Module
+#### 20. Conduit.Application Module
 **Priority**: HIGH
 **Dependencies**: All modules
 **Key Components to Implement**:
@@ -454,7 +523,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `Program.cs` - Entry point
 - [ ] Integration with Generic Host
 
-#### 20. OrderService Example
+#### 21. OrderService Example
 **Priority**: LOW
 **Location**: `/home/michaelbolton/Projects/Conduit/examples/OrderService/`
 **Components to Implement**:
@@ -468,7 +537,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] Unit tests
 - [ ] Integration tests
 
-#### 21. Unit Tests
+#### 22. Unit Tests
 **Priority**: HIGH
 **Framework**: xUnit, Moq, FluentAssertions
 **Test Projects**:
@@ -477,7 +546,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] Conduit.Pipeline.Tests
 - [ ] Coverage target: 80%+
 
-#### 22. Docker Configuration
+#### 23. Docker Configuration
 **Priority**: MEDIUM
 **Files to Create**:
 - [ ] `Dockerfile` - Multi-stage build
@@ -485,7 +554,7 @@ Converting the Java-based Conduit messaging framework to C#/.NET 8, maintaining 
 - [ ] `.dockerignore` - Ignore patterns
 - [ ] `docker-compose.override.yml` - Dev overrides
 
-#### 23. Integration Tests
+#### 24. Integration Tests
 **Priority**: MEDIUM
 **Location**: `/home/michaelbolton/Projects/Conduit/tests/Conduit.IntegrationTests/`
 **Components**:
@@ -656,19 +725,19 @@ For questions about the conversion approach, refer to the original Java implemen
   - Sophisticated caching with eviction policies
 
 ### Progress Metrics
-- **Files Created**: 96+ C# files
-- **Modules Completed**: 11 of 23 (48%)
-- **Lines of Code**: ~16,500+
-- **Next Module**: Conduit.Transports.Tcp or Conduit.Transports.Grpc (ready to start)
+- **Files Created**: 110+ C# files
+- **Modules Completed**: 13 of 24 (54%)
+- **Lines of Code**: ~20,250+
+- **Next Module**: Conduit.Transports.Grpc or Conduit.Persistence (ready to start)
 
 ### Ready for Next Session
 - All documentation updated (TASK.md, CHANGELOG.md)
 - Clear path forward with additional transport implementations
 - Core framework, resilience, and transport abstractions complete
-- ActiveMQ Artemis transport implementation complete
-- Ready to implement TCP or gRPC transport
+- Three transport implementations complete (ActiveMQ, TCP, UDP)
+- Ready to implement gRPC transport or persistence layer
 
 ---
 *Last Updated: 2025-10-25*
 *Status: Active Development*
-*Completion: ~48% (11 of 23 modules)*
+*Completion: ~54% (13 of 24 modules)*
