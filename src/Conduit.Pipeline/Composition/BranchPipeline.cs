@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Conduit.Api;
 using Conduit.Common;
+using Conduit.Pipeline.Behaviors;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -139,10 +143,11 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds an interceptor to both branches.
         /// </summary>
-        public void AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
         {
             _trueBranch.AddInterceptor(interceptor);
             _falseBranch.AddInterceptor(interceptor);
+            return this;
         }
 
         /// <summary>
@@ -188,6 +193,128 @@ namespace Conduit.Pipeline.Composition
         {
             _trueBranch.ConfigureCache(cacheKeyExtractor, duration);
             _falseBranch.ConfigureCache(cacheKeyExtractor, duration);
+        }
+
+        // IPipeline interface implementation methods
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Map<TNewOutput>(Func<TOutput, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not implemented for BranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not implemented for BranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(IPipeline<TOutput, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not implemented for BranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(Func<TOutput, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not implemented for BranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> ThenAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not implemented for BranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> Filter(Predicate<TOutput> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not implemented for BranchPipeline. Consider applying filters to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> FilterAsync(Func<TOutput, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not implemented for BranchPipeline. Consider applying filters to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Branch(
+            Predicate<TOutput> condition,
+            IPipeline<TOutput, TOutput> trueBranch,
+            IPipeline<TOutput, TOutput> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not implemented for BranchPipeline. BranchPipeline already implements branching logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleError(Func<Exception, TOutput> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not implemented for BranchPipeline. Apply error handling to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleErrorAsync(Func<Exception, Task<TOutput>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not implemented for BranchPipeline. Apply error handling to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for BranchPipeline. Apply retry logic to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for BranchPipeline. Apply retry logic to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not implemented for BranchPipeline. Apply timeout to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for BranchPipeline. Apply caching to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(Func<TInput, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for BranchPipeline. Apply caching to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, IEnumerable<TOutput>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, TInput> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not implemented for BranchPipeline. Consider using ParallelPipeline for parallel processing.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
+            where TStageOutput : TOutput
+        {
+            throw new NotImplementedException("AddStage operation is not implemented for BranchPipeline. Add stages to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return new List<IPipelineInterceptor>().AsReadOnly();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return new List<IPipelineStage<object, object>>().AsReadOnly();
         }
     }
 
@@ -304,13 +431,14 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Other interface methods implementation...
-        public void AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
         {
             foreach (var (_, pipeline, _) in _branches)
             {
                 pipeline.AddInterceptor(interceptor);
             }
             _defaultBranch?.AddInterceptor(interceptor);
+            return this;
         }
 
         public void AddBehavior(BehaviorContribution behavior)
@@ -356,6 +484,128 @@ namespace Conduit.Pipeline.Composition
                 pipeline.ConfigureCache(cacheKeyExtractor, duration);
             }
             _defaultBranch?.ConfigureCache(cacheKeyExtractor, duration);
+        }
+
+        // IPipeline interface implementation methods
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Map<TNewOutput>(Func<TOutput, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not implemented for MultiBranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not implemented for MultiBranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(IPipeline<TOutput, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not implemented for MultiBranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(Func<TOutput, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not implemented for MultiBranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> ThenAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not implemented for MultiBranchPipeline. Branch pipelines must be composed at the branch level.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> Filter(Predicate<TOutput> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not implemented for MultiBranchPipeline. Consider applying filters to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> FilterAsync(Func<TOutput, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not implemented for MultiBranchPipeline. Consider applying filters to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Branch(
+            Predicate<TOutput> condition,
+            IPipeline<TOutput, TOutput> trueBranch,
+            IPipeline<TOutput, TOutput> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not implemented for MultiBranchPipeline. MultiBranchPipeline already implements branching logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleError(Func<Exception, TOutput> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not implemented for MultiBranchPipeline. Apply error handling to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleErrorAsync(Func<Exception, Task<TOutput>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not implemented for MultiBranchPipeline. Apply error handling to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for MultiBranchPipeline. Apply retry logic to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for MultiBranchPipeline. Apply retry logic to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not implemented for MultiBranchPipeline. Apply timeout to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for MultiBranchPipeline. Apply caching to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(Func<TInput, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for MultiBranchPipeline. Apply caching to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, IEnumerable<TOutput>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, TInput> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not implemented for MultiBranchPipeline. Consider using ParallelPipeline for parallel processing.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
+            where TStageOutput : TOutput
+        {
+            throw new NotImplementedException("AddStage operation is not implemented for MultiBranchPipeline. Add stages to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return new List<IPipelineInterceptor>().AsReadOnly();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return new List<IPipelineStage<object, object>>().AsReadOnly();
         }
     }
 

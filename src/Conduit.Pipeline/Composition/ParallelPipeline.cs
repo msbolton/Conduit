@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Conduit.Api;
 using Conduit.Common;
+using Conduit.Pipeline.Behaviors;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -246,9 +248,10 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public void AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
+            return this;
         }
 
         public void AddBehavior(BehaviorContribution behavior)
@@ -277,6 +280,128 @@ namespace Conduit.Pipeline.Composition
         {
             // Caching would need special handling for collections
             throw new NotImplementedException("Cache configuration not yet implemented for ParallelPipeline");
+        }
+
+        // IPipeline interface implementation methods
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Map<TNewOutput>(Func<IList<TOutput>, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not implemented for ParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> MapAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not implemented for ParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Then<TNewOutput>(IPipeline<IList<TOutput>, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not implemented for ParallelPipeline. Chain pipelines at the element level using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Then<TNewOutput>(Func<IList<TOutput>, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not implemented for ParallelPipeline. Apply processing to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> ThenAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not implemented for ParallelPipeline. Apply processing to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>?> Filter(Predicate<IList<TOutput>> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not implemented for ParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>?> FilterAsync(Func<IList<TOutput>, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not implemented for ParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> Branch(
+            Predicate<IList<TOutput>> condition,
+            IPipeline<IList<TOutput>, IList<TOutput>> trueBranch,
+            IPipeline<IList<TOutput>, IList<TOutput>> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not implemented for ParallelPipeline. Apply branching to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> HandleError(Func<Exception, IList<TOutput>> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not implemented for ParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> HandleErrorAsync(Func<Exception, Task<IList<TOutput>>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not implemented for ParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for ParallelPipeline. Apply retry logic to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for ParallelPipeline. Apply retry logic to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not implemented for ParallelPipeline. Apply timeout to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithCache(TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for ParallelPipeline. Caching collections requires special handling.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithCache(Func<IEnumerable<TInput>, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for ParallelPipeline. Caching collections requires special handling.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IEnumerable<IList<TOutput>>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, IEnumerable<TInput>> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not implemented for ParallelPipeline. ParallelPipeline already implements parallel processing.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(IPipelineStage<IList<TOutput>, TStageOutput> stage)
+            where TStageOutput : IList<TOutput>
+        {
+            throw new NotImplementedException("AddStage operation is not implemented for ParallelPipeline. Add stages to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return new List<IPipelineInterceptor>().AsReadOnly();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return new List<IPipelineStage<object, object>>().AsReadOnly();
         }
     }
 
@@ -403,12 +528,139 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public void AddInterceptor(IPipelineInterceptor interceptor) => _innerPipeline.AddInterceptor(interceptor);
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(IPipelineInterceptor interceptor)
+        {
+            _innerPipeline.AddInterceptor(interceptor);
+            return this;
+        }
+
         public void AddBehavior(BehaviorContribution behavior) => _innerPipeline.AddBehavior(behavior);
         public void AddStage(IPipelineStage<object, object> stage) => _innerPipeline.AddStage(stage);
         public void SetErrorHandler(Func<Exception, IList<TOutput>> errorHandler) => throw new NotImplementedException();
         public void SetCompletionHandler(Action<IList<TOutput>> completionHandler) => throw new NotImplementedException();
         public void ConfigureCache(Func<IEnumerable<TInput>, string> cacheKeyExtractor, TimeSpan duration) => throw new NotImplementedException();
+
+        // IPipeline interface implementation methods
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Map<TNewOutput>(Func<IList<TOutput>, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not implemented for DataflowParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> MapAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not implemented for DataflowParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Then<TNewOutput>(IPipeline<IList<TOutput>, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not implemented for DataflowParallelPipeline. Chain pipelines at the element level using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> Then<TNewOutput>(Func<IList<TOutput>, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not implemented for DataflowParallelPipeline. Apply processing to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNewOutput> ThenAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not implemented for DataflowParallelPipeline. Apply processing to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>?> Filter(Predicate<IList<TOutput>> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not implemented for DataflowParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>?> FilterAsync(Func<IList<TOutput>, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not implemented for DataflowParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> Branch(
+            Predicate<IList<TOutput>> condition,
+            IPipeline<IList<TOutput>, IList<TOutput>> trueBranch,
+            IPipeline<IList<TOutput>, IList<TOutput>> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not implemented for DataflowParallelPipeline. Apply branching to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> HandleError(Func<Exception, IList<TOutput>> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not implemented for DataflowParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> HandleErrorAsync(Func<Exception, Task<IList<TOutput>>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not implemented for DataflowParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for DataflowParallelPipeline. Apply retry logic to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for DataflowParallelPipeline. Apply retry logic to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not implemented for DataflowParallelPipeline. Apply timeout to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithCache(TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for DataflowParallelPipeline. Caching collections requires special handling.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithCache(Func<IEnumerable<TInput>, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for DataflowParallelPipeline. Caching collections requires special handling.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IEnumerable<IList<TOutput>>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, IEnumerable<TInput>> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not implemented for DataflowParallelPipeline. DataflowParallelPipeline already implements parallel processing.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(IPipelineStage<IList<TOutput>, TStageOutput> stage)
+            where TStageOutput : IList<TOutput>
+        {
+            throw new NotImplementedException("AddStage operation is not implemented for DataflowParallelPipeline. Add stages to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return new List<IPipelineInterceptor>().AsReadOnly();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return new List<IPipelineStage<object, object>>().AsReadOnly();
+        }
     }
 
     /// <summary>

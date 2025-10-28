@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Conduit.Api;
 using Conduit.Common;
+using Conduit.Pipeline.Behaviors;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -110,9 +114,10 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds an interceptor to the inner pipeline if supported.
         /// </summary>
-        public void AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
+            return this;
         }
 
         /// <summary>
@@ -155,6 +160,128 @@ namespace Conduit.Pipeline.Composition
         public void ConfigureCache(Func<TInput, string> cacheKeyExtractor, TimeSpan duration)
         {
             _innerPipeline.ConfigureCache(cacheKeyExtractor, duration);
+        }
+
+        // IPipeline interface implementation methods
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Map<TNewOutput>(Func<TOutput, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not implemented for MapPipeline. MapPipeline already implements mapping logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not implemented for MapPipeline. MapPipeline already implements mapping logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(IPipeline<TOutput, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not implemented for MapPipeline. Chain pipelines before applying mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(Func<TOutput, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not implemented for MapPipeline. Apply additional processing to the mapped result is not supported.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> ThenAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not implemented for MapPipeline. Apply additional processing to the mapped result is not supported.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> Filter(Predicate<TOutput> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not implemented for MapPipeline. Apply filtering after mapping using a FilterPipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> FilterAsync(Func<TOutput, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not implemented for MapPipeline. Apply filtering after mapping using a FilterPipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Branch(
+            Predicate<TOutput> condition,
+            IPipeline<TOutput, TOutput> trueBranch,
+            IPipeline<TOutput, TOutput> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not implemented for MapPipeline. Apply branching after mapping using a BranchPipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleError(Func<Exception, TOutput> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not implemented for MapPipeline. Apply error handling to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleErrorAsync(Func<Exception, Task<TOutput>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not implemented for MapPipeline. Apply error handling to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for MapPipeline. Apply retry logic to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not implemented for MapPipeline. Apply retry logic to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not implemented for MapPipeline. Apply timeout to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for MapPipeline. Apply caching to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(Func<TInput, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            throw new NotImplementedException("WithCache operation is not implemented for MapPipeline. Apply caching to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, IEnumerable<TOutput>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, TInput> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not implemented for MapPipeline. Consider using ParallelPipeline for parallel processing.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
+            where TStageOutput : TOutput
+        {
+            throw new NotImplementedException("AddStage operation is not implemented for MapPipeline. Add stages to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return new List<IPipelineInterceptor>().AsReadOnly();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return new List<IPipelineStage<object, object>>().AsReadOnly();
         }
     }
 

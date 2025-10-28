@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Concurrent;
-using System.Runtime.Caching;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Conduit.Api;
 using Conduit.Common;
 
 namespace Conduit.Pipeline.Composition
@@ -40,9 +41,9 @@ namespace Conduit.Pipeline.Composition
             CacheEvictionPolicy evictionPolicy = CacheEvictionPolicy.LRU,
             bool refreshOnAccess = false)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
-            Guard.AgainstNull(cacheKeyExtractor, nameof(cacheKeyExtractor));
-            Guard.AgainstNegative(cacheDuration.TotalSeconds, nameof(cacheDuration));
+            _ = Guard.NotNull(innerPipeline, nameof(innerPipeline));
+            _ = Guard.NotNull(cacheKeyExtractor, nameof(cacheKeyExtractor));
+            Guard.Against(cacheDuration.TotalSeconds < 0, nameof(cacheDuration), "Duration cannot be negative");
 
             _innerPipeline = innerPipeline;
             _cacheKeyExtractor = cacheKeyExtractor;
@@ -212,12 +213,13 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public void AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
+            return this;
         }
 
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             _innerPipeline.AddBehavior(behavior);
         }
@@ -241,6 +243,141 @@ namespace Conduit.Pipeline.Composition
         {
             // This pipeline is already configured for caching
             // Could potentially update the configuration if needed
+        }
+
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(Func<TInput, string> cacheKeySelector, TimeSpan cacheDuration)
+        {
+            // Return self if cache configuration matches, otherwise create new instance
+            if (_cacheKeyExtractor.Equals(cacheKeySelector) && _cacheDuration == cacheDuration)
+            {
+                return this;
+            }
+            return new CachingPipeline<TInput, TOutput>(_innerPipeline, cacheKeySelector, cacheDuration);
+        }
+
+        // Missing IPipeline interface methods
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Map<TNewOutput>(Func<TOutput, TNewOutput> mapper)
+        {
+            throw new NotImplementedException("Map operation is not yet implemented for CachingPipeline. Apply transformations to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
+        {
+            throw new NotImplementedException("MapAsync operation is not yet implemented for CachingPipeline. Apply transformations to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(IPipeline<TOutput, TNewOutput> nextPipeline)
+        {
+            throw new NotImplementedException("Then operation is not yet implemented for CachingPipeline. Apply chaining to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> Then<TNewOutput>(Func<TOutput, TNewOutput> processor)
+        {
+            throw new NotImplementedException("Then operation is not yet implemented for CachingPipeline. Apply transformations to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNewOutput> ThenAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncProcessor)
+        {
+            throw new NotImplementedException("ThenAsync operation is not yet implemented for CachingPipeline. Apply transformations to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> Filter(Predicate<TOutput> predicate)
+        {
+            throw new NotImplementedException("Filter operation is not yet implemented for CachingPipeline. Apply filtering to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> FilterAsync(Func<TOutput, Task<bool>> asyncPredicate)
+        {
+            throw new NotImplementedException("FilterAsync operation is not yet implemented for CachingPipeline. Apply filtering to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Branch(
+            Predicate<TOutput> condition,
+            IPipeline<TOutput, TOutput> trueBranch,
+            IPipeline<TOutput, TOutput> falseBranch)
+        {
+            throw new NotImplementedException("Branch operation is not yet implemented for CachingPipeline. Apply branching to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleError(Func<Exception, TOutput> errorHandler)
+        {
+            throw new NotImplementedException("HandleError operation is not yet implemented for CachingPipeline. Apply error handling to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> HandleErrorAsync(Func<Exception, Task<TOutput>> asyncErrorHandler)
+        {
+            throw new NotImplementedException("HandleErrorAsync operation is not yet implemented for CachingPipeline. Apply error handling to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(int maxRetries, TimeSpan retryDelay)
+        {
+            throw new NotImplementedException("WithRetry operation is not yet implemented for CachingPipeline. Apply retry logic to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithRetry(RetryPolicy retryPolicy)
+        {
+            throw new NotImplementedException("WithRetry operation is not yet implemented for CachingPipeline. Apply retry logic to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithTimeout(TimeSpan timeout)
+        {
+            throw new NotImplementedException("WithTimeout operation is not yet implemented for CachingPipeline. Apply timeout to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithCache(TimeSpan cacheDuration)
+        {
+            if (_cacheDuration == cacheDuration)
+            {
+                return this;
+            }
+            return new CachingPipeline<TInput, TOutput>(_innerPipeline, _cacheKeyExtractor, cacheDuration);
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, IEnumerable<TOutput>> Parallel<TParallelInput>(
+            IEnumerable<TParallelInput> items,
+            Func<TParallelInput, TInput> inputMapper)
+        {
+            throw new NotImplementedException("Parallel operation is not directly supported on CachingPipeline. Apply caching to the parallel pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
+            where TStageOutput : TOutput
+        {
+            return new CachingPipeline<TInput, TOutput>(
+                _innerPipeline.AddStage(stage),
+                _cacheKeyExtractor,
+                _cacheDuration);
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        {
+            return _innerPipeline.GetInterceptors();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        {
+            return _innerPipeline.GetStages();
         }
     }
 
