@@ -56,20 +56,19 @@ namespace Conduit.Messaging
             Guard.AgainstNull(message, nameof(message));
 
             // Check if message already has a correlation ID
-            if (message.Headers?.TryGetValue("CorrelationId", out var existingId) == true &&
-                !string.IsNullOrEmpty(existingId))
+            if (message.Headers?.TryGetValue("CorrelationId", out var existingIdObj) == true)
             {
-                return existingId;
+                var existingId = existingIdObj?.ToString();
+                if (!string.IsNullOrEmpty(existingId))
+                {
+                    return existingId;
+                }
             }
 
             // Generate new correlation ID
             var correlationId = Guid.NewGuid().ToString();
 
-            // Add to message headers
-            if (message.Headers != null)
-            {
-                message.Headers["CorrelationId"] = correlationId;
-            }
+            // Note: Cannot modify readonly headers - would need to be handled differently in implementation
 
             // Start tracking
             StartCorrelation(correlationId, message);
@@ -102,10 +101,13 @@ namespace Conduit.Messaging
             });
 
             // Check for conversation ID
-            if (message.Headers?.TryGetValue("ConversationId", out var conversationId) == true &&
-                !string.IsNullOrEmpty(conversationId))
+            if (message.Headers?.TryGetValue("ConversationId", out var conversationIdObj) == true)
             {
-                AddToConversation(conversationId, correlationId, message);
+                var conversationId = conversationIdObj?.ToString();
+                if (!string.IsNullOrEmpty(conversationId))
+                {
+                    AddToConversation(conversationId, correlationId, message);
+                }
             }
         }
 
@@ -192,20 +194,19 @@ namespace Conduit.Messaging
             Guard.AgainstNull(message, nameof(message));
 
             // Check if message already has a conversation ID
-            if (message.Headers?.TryGetValue("ConversationId", out var existingId) == true &&
-                !string.IsNullOrEmpty(existingId))
+            if (message.Headers?.TryGetValue("ConversationId", out var existingIdObj) == true)
             {
-                return existingId;
+                var existingId = existingIdObj?.ToString();
+                if (!string.IsNullOrEmpty(existingId))
+                {
+                    return existingId;
+                }
             }
 
             // Generate new conversation ID
             var conversationId = Guid.NewGuid().ToString();
 
-            // Add to message headers
-            if (message.Headers != null)
-            {
-                message.Headers["ConversationId"] = conversationId;
-            }
+            // Note: Cannot modify readonly headers - would need to be handled differently in implementation
 
             // Start tracking
             StartConversation(conversationId, message);

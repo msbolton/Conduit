@@ -1,4 +1,7 @@
+using Conduit.Api;
 using Conduit.Messaging;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Conduit.Saga;
 
@@ -8,6 +11,10 @@ namespace Conduit.Saga;
 /// </summary>
 public interface ISagaMessageHandlerContext : IMessageContext
 {
+    /// <summary>
+    /// Gets the correlation ID for the current message.
+    /// </summary>
+    string? CorrelationId => Envelope.CorrelationId;
     /// <summary>
     /// Sends a message to a specific endpoint.
     /// </summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using RetryPolicy = Conduit.Api.RetryPolicy;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -175,7 +176,7 @@ public class BehaviorChain
                 {
                     return await ProceedAsync(context);
                 }
-                catch (Exception ex) when (attempt < policy.MaxRetries && policy.IsRetryable(ex))
+                catch (Exception ex) when (attempt < policy.MaxRetries && policy.IsRetryable && (policy.ShouldRetry?.Invoke(ex) ?? true))
                 {
                     lastException = ex;
                     var delay = policy.CalculateDelay(attempt + 1);

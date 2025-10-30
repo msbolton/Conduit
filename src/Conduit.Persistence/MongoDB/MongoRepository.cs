@@ -273,8 +273,8 @@ namespace Conduit.Persistence.MongoDB
             var totalCount = await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 
             var sort = ascending
-                ? Builders<TEntity>.Sort.Ascending(orderBy)
-                : Builders<TEntity>.Sort.Descending(orderBy);
+                ? Builders<TEntity>.Sort.Ascending(new ExpressionFieldDefinition<TEntity>(orderBy))
+                : Builders<TEntity>.Sort.Descending(new ExpressionFieldDefinition<TEntity>(orderBy));
 
             var cursor = await Collection.FindAsync(
                 filter,

@@ -21,6 +21,9 @@ namespace Conduit.Transports.Udp
         private readonly ILogger<UdpTransport> _logger;
         private readonly ConcurrentDictionary<string, UdpSubscription> _subscriptions;
 
+        public override TransportType Type => TransportType.Custom;
+        public override string Name => "UDP";
+
         private UdpClient? _udpClient;
         private CancellationTokenSource? _receiveCts;
         private Task? _receiveTask;
@@ -36,7 +39,7 @@ namespace Conduit.Transports.Udp
             UdpConfiguration configuration,
             IMessageSerializer serializer,
             ILogger<UdpTransport> logger)
-            : base(TransportType.Custom, "UDP", configuration, logger)
+            : base(configuration, logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -164,7 +167,18 @@ namespace Conduit.Transports.Udp
             if (_udpClient == null)
                 throw new InvalidOperationException("UDP transport not connected");
 
-            var transportMessage = CreateTransportMessage(message, destination ?? "udp");
+            var transportMessage = new TransportMessage
+            {
+                MessageId = message.MessageId,
+                CorrelationId = message.CorrelationId,
+                CausationId = message.CausationId,
+                Payload = _serializer.Serialize(message),
+                ContentType = _serializer.MimeType,
+                MessageType = message.GetType().Name,
+                Source = Name,
+                Destination = destination ?? "udp",
+                Timestamp = DateTimeOffset.UtcNow
+            };
             var data = _serializer.Serialize(transportMessage);
 
             if (data.Length > _configuration.MaxDatagramSize)

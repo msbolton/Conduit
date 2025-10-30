@@ -96,6 +96,11 @@ public class ComponentManifest
     public Dictionary<string, object> Metadata { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the component scope/lifetime.
+    /// </summary>
+    public object? Scope { get; set; }
+
+    /// <summary>
     /// Creates a basic manifest.
     /// </summary>
     public static ComponentManifest Create(string id, string name, string version, string description)

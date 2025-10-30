@@ -122,7 +122,7 @@ namespace Conduit.Messaging
                     ExpiresAt = DateTimeOffset.UtcNow.Add(_retentionPeriod),
                     RetryCount = context?.RetryCount ?? 0,
                     CorrelationId = context?.CorrelationId,
-                    Headers = new Dictionary<string, string>(message.Headers ?? new Dictionary<string, string>())
+                    Headers = message.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? "") ?? new Dictionary<string, string>()
                 };
 
                 // Extract additional error details

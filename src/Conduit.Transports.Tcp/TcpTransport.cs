@@ -20,6 +20,9 @@ namespace Conduit.Transports.Tcp
         private readonly ILogger<TcpTransport> _logger;
         private readonly ConcurrentDictionary<string, TcpSubscription> _subscriptions;
 
+        public override TransportType Type => TransportType.Tcp;
+        public override string Name => "TCP";
+
         private TcpServer? _server;
         private TcpClientManager? _clientManager;
 
@@ -33,7 +36,7 @@ namespace Conduit.Transports.Tcp
             TcpConfiguration configuration,
             IMessageSerializer serializer,
             ILogger<TcpTransport> logger)
-            : base(TransportType.Tcp, "TCP", configuration, logger)
+            : base(configuration, logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -130,7 +133,18 @@ namespace Conduit.Transports.Tcp
                 if (_server == null)
                     throw new InvalidOperationException("Server not started");
 
-                var transportMessage = CreateTransportMessage(message, "broadcast");
+                var transportMessage = new TransportMessage
+                {
+                    MessageId = message.MessageId,
+                    CorrelationId = message.CorrelationId,
+                    CausationId = message.CausationId,
+                    Payload = _serializer.Serialize(message),
+                    ContentType = _serializer.MimeType,
+                    MessageType = message.GetType().Name,
+                    Source = Name,
+                    Destination = "broadcast",
+                    Timestamp = DateTimeOffset.UtcNow
+                };
                 var data = _serializer.Serialize(transportMessage);
 
                 await _server.BroadcastAsync(data, cancellationToken);
@@ -143,7 +157,18 @@ namespace Conduit.Transports.Tcp
                 if (_server == null)
                     throw new InvalidOperationException("Server not started");
 
-                var transportMessage = CreateTransportMessage(message, destination);
+                var transportMessage = new TransportMessage
+                {
+                    MessageId = message.MessageId,
+                    CorrelationId = message.CorrelationId,
+                    CausationId = message.CausationId,
+                    Payload = _serializer.Serialize(message),
+                    ContentType = _serializer.MimeType,
+                    MessageType = message.GetType().Name,
+                    Source = Name,
+                    Destination = destination,
+                    Timestamp = DateTimeOffset.UtcNow
+                };
                 var data = _serializer.Serialize(transportMessage);
 
                 await _server.SendToConnectionAsync(destination, data, cancellationToken);
@@ -156,7 +181,18 @@ namespace Conduit.Transports.Tcp
                 if (_clientManager == null)
                     throw new InvalidOperationException("Client not started");
 
-                var transportMessage = CreateTransportMessage(message, destination ?? "server");
+                var transportMessage = new TransportMessage
+                {
+                    MessageId = message.MessageId,
+                    CorrelationId = message.CorrelationId,
+                    CausationId = message.CausationId,
+                    Payload = _serializer.Serialize(message),
+                    ContentType = _serializer.MimeType,
+                    MessageType = message.GetType().Name,
+                    Source = Name,
+                    Destination = destination ?? "server",
+                    Timestamp = DateTimeOffset.UtcNow
+                };
                 var data = _serializer.Serialize(transportMessage);
 
                 await _clientManager.SendMessageAsync(data, cancellationToken);

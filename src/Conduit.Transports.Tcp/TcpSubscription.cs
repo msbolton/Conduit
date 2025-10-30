@@ -16,6 +16,7 @@ namespace Conduit.Transports.Tcp
 
         private volatile bool _isPaused;
         private volatile bool _isDisposed;
+        private long _messagesReceived;
 
         /// <summary>
         /// Initializes a new instance of the TcpSubscription class.
@@ -31,7 +32,7 @@ namespace Conduit.Transports.Tcp
             ILogger logger)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
-            Source = source;
+            Source = source ?? string.Empty;
             _handler = handler ?? throw new ArgumentNullException(nameof(handler));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -45,9 +46,24 @@ namespace Conduit.Transports.Tcp
         public string Id { get; }
 
         /// <summary>
-        /// Gets the source filter (null for all sources).
+        /// Gets the source filter (empty for all sources).
         /// </summary>
-        public string? Source { get; }
+        public string Source { get; }
+
+        /// <summary>
+        /// Gets the subscription identifier.
+        /// </summary>
+        public string SubscriptionId => Id;
+
+        /// <summary>
+        /// Gets whether this subscription is active.
+        /// </summary>
+        public bool IsActive => !_isDisposed && !_isPaused;
+
+        /// <summary>
+        /// Gets the number of messages received through this subscription.
+        /// </summary>
+        public long MessagesReceived => _messagesReceived;
 
         /// <summary>
         /// Gets a value indicating whether the subscription is paused.
@@ -57,7 +73,7 @@ namespace Conduit.Transports.Tcp
         /// <summary>
         /// Pauses message delivery for this subscription.
         /// </summary>
-        public Task PauseAsync(CancellationToken cancellationToken = default)
+        public Task PauseAsync()
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(nameof(TcpSubscription));
@@ -70,7 +86,7 @@ namespace Conduit.Transports.Tcp
         /// <summary>
         /// Resumes message delivery for this subscription.
         /// </summary>
-        public Task ResumeAsync(CancellationToken cancellationToken = default)
+        public Task ResumeAsync()
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(nameof(TcpSubscription));
@@ -105,6 +121,7 @@ namespace Conduit.Transports.Tcp
             try
             {
                 await _handler(message);
+                Interlocked.Increment(ref _messagesReceived);
             }
             catch (Exception ex)
             {

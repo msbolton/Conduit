@@ -31,7 +31,7 @@ namespace Conduit.Core.Discovery
         /// <param name="componentId">The component ID</param>
         public void AddComponent(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             _adjacencyList.TryAdd(componentId, new HashSet<DependencyEdge>());
             _reverseAdjacencyList.TryAdd(componentId, new HashSet<string>());
@@ -45,8 +45,8 @@ namespace Conduit.Core.Discovery
         /// <param name="required">Whether the dependency is required</param>
         public void AddDependency(string from, string to, bool required = true)
         {
-            Guard.AgainstNullOrEmpty(from, nameof(from));
-            Guard.AgainstNullOrEmpty(to, nameof(to));
+            Guard.NotNullOrEmpty(from, nameof(from));
+            Guard.NotNullOrEmpty(to, nameof(to));
 
             lock (_lockObject)
             {
@@ -72,8 +72,8 @@ namespace Conduit.Core.Discovery
         /// <returns>True if the dependency was removed</returns>
         public bool RemoveDependency(string from, string to)
         {
-            Guard.AgainstNullOrEmpty(from, nameof(from));
-            Guard.AgainstNullOrEmpty(to, nameof(to));
+            Guard.NotNullOrEmpty(from, nameof(from));
+            Guard.NotNullOrEmpty(to, nameof(to));
 
             lock (_lockObject)
             {
@@ -100,7 +100,7 @@ namespace Conduit.Core.Discovery
         /// <returns>True if the component was removed</returns>
         public bool RemoveComponent(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             lock (_lockObject)
             {
@@ -132,7 +132,7 @@ namespace Conduit.Core.Discovery
         /// <returns>The component's direct dependencies</returns>
         public IEnumerable<string> GetDependencies(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             if (_adjacencyList.TryGetValue(componentId, out var edges))
             {
@@ -149,7 +149,7 @@ namespace Conduit.Core.Discovery
         /// <returns>The component's required dependencies</returns>
         public IEnumerable<string> GetRequiredDependencies(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             if (_adjacencyList.TryGetValue(componentId, out var edges))
             {
@@ -166,7 +166,7 @@ namespace Conduit.Core.Discovery
         /// <returns>The component's optional dependencies</returns>
         public IEnumerable<string> GetOptionalDependencies(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             if (_adjacencyList.TryGetValue(componentId, out var edges))
             {
@@ -183,7 +183,7 @@ namespace Conduit.Core.Discovery
         /// <returns>Components that depend on this component</returns>
         public IEnumerable<string> GetDependents(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             if (_reverseAdjacencyList.TryGetValue(componentId, out var dependents))
             {
@@ -209,7 +209,7 @@ namespace Conduit.Core.Discovery
         /// <returns>True if the component exists</returns>
         public bool ContainsComponent(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
             return _adjacencyList.ContainsKey(componentId);
         }
 
@@ -221,8 +221,8 @@ namespace Conduit.Core.Discovery
         /// <returns>True if the dependency exists</returns>
         public bool HasDependency(string from, string to)
         {
-            Guard.AgainstNullOrEmpty(from, nameof(from));
-            Guard.AgainstNullOrEmpty(to, nameof(to));
+            Guard.NotNullOrEmpty(from, nameof(from));
+            Guard.NotNullOrEmpty(to, nameof(to));
 
             if (_adjacencyList.TryGetValue(from, out var edges))
             {
@@ -239,7 +239,7 @@ namespace Conduit.Core.Discovery
         /// <returns>All transitive dependencies</returns>
         public IEnumerable<string> GetTransitiveDependencies(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var stack = new Stack<string>();
@@ -272,7 +272,7 @@ namespace Conduit.Core.Discovery
         /// <returns>All transitive dependents</returns>
         public IEnumerable<string> GetTransitiveDependents(string componentId)
         {
-            Guard.AgainstNullOrEmpty(componentId, nameof(componentId));
+            Guard.NotNullOrEmpty(componentId, nameof(componentId));
 
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var stack = new Stack<string>();

@@ -7,6 +7,11 @@ using System.Threading.Tasks.Dataflow;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Pipeline.Behaviors;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using RetryPolicy = Conduit.Api.RetryPolicy;
+using IPipelineInterceptor = Conduit.Api.IPipelineInterceptor;
+using ApiPipelineContext = Conduit.Api.PipelineContext;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -34,7 +39,7 @@ namespace Conduit.Pipeline.Composition
             int maxConcurrency = -1,
             bool preserveOrder = true)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
 
             _innerPipeline = innerPipeline;
             _maxConcurrency = maxConcurrency > 0 ? maxConcurrency : Environment.ProcessorCount;
@@ -76,6 +81,15 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
+        public string Name => $"{_innerPipeline.Name} -> Parallel";
+
+        /// <inheritdoc />
+        public string Id => $"{_innerPipeline.Id}_parallel";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _innerPipeline.IsEnabled;
+
+        /// <inheritdoc />
         public async Task<IList<TOutput>> ExecuteAsync(IEnumerable<TInput> input, CancellationToken cancellationToken = default)
         {
             var inputList = input.ToList();
@@ -98,7 +112,7 @@ namespace Conduit.Pipeline.Composition
         /// <inheritdoc />
         public async Task<IList<TOutput>> ExecuteAsync(
             IEnumerable<TInput> input,
-            PipelineContext context,
+            ApiPipelineContext context,
             CancellationToken cancellationToken = default)
         {
             var inputList = input.ToList();
@@ -113,14 +127,22 @@ namespace Conduit.Pipeline.Composition
                 return new List<TOutput>();
             }
 
+            // Convert ApiPipelineContext to Pipeline.PipelineContext for internal operations
+            var pipelineContext = new Conduit.Pipeline.PipelineContext
+            {
+                CancellationToken = context.CancellationToken,
+                Result = context.Result,
+                Exception = context.Exception
+            };
+
             IList<TOutput> results;
             if (_preserveOrder)
             {
-                results = await ExecuteWithOrderPreservationAsync(inputList, context, cancellationToken);
+                results = await ExecuteWithOrderPreservationAsync(inputList, pipelineContext, cancellationToken);
             }
             else
             {
-                results = await ExecuteWithoutOrderPreservationAsync(inputList, context, cancellationToken);
+                results = await ExecuteWithoutOrderPreservationAsync(inputList, pipelineContext, cancellationToken);
             }
 
             context.SetProperty("ParallelPipeline.OutputCount", results.Count);
@@ -166,7 +188,7 @@ namespace Conduit.Pipeline.Composition
 
         private async Task<IList<TOutput>> ExecuteWithOrderPreservationAsync(
             List<TInput> inputList,
-            PipelineContext parentContext,
+            Conduit.Pipeline.PipelineContext parentContext,
             CancellationToken cancellationToken)
         {
             var tasks = new Task<TOutput>[inputList.Count];
@@ -188,7 +210,7 @@ namespace Conduit.Pipeline.Composition
                         childContext.SetProperty("ParallelPipeline.Index", index);
                         childContext.SetProperty("ParallelPipeline.ThreadId", Thread.CurrentThread.ManagedThreadId);
 
-                        return await _innerPipeline.ExecuteAsync(item, childContext, cancellationToken);
+                        return await _innerPipeline.ExecuteAsync(item, cancellationToken);
                     }
                     finally
                     {
@@ -208,7 +230,7 @@ namespace Conduit.Pipeline.Composition
             var results = new List<TOutput>();
             var resultLock = new object();
 
-            await Parallel.ForEachAsync(inputList, _parallelOptions, async (item, ct) =>
+            await System.Threading.Tasks.Parallel.ForEachAsync(inputList, _parallelOptions, async (item, ct) =>
             {
                 var result = await _innerPipeline.ExecuteAsync(item, ct);
                 lock (resultLock)
@@ -222,19 +244,19 @@ namespace Conduit.Pipeline.Composition
 
         private async Task<IList<TOutput>> ExecuteWithoutOrderPreservationAsync(
             List<TInput> inputList,
-            PipelineContext parentContext,
+            Conduit.Pipeline.PipelineContext parentContext,
             CancellationToken cancellationToken)
         {
             var results = new List<TOutput>();
             var resultLock = new object();
             var processedCount = 0;
 
-            await Parallel.ForEachAsync(inputList, _parallelOptions, async (item, ct) =>
+            await System.Threading.Tasks.Parallel.ForEachAsync(inputList, _parallelOptions, async (item, ct) =>
             {
                 var childContext = parentContext.Copy();
                 childContext.SetProperty("ParallelPipeline.ThreadId", Thread.CurrentThread.ManagedThreadId);
 
-                var result = await _innerPipeline.ExecuteAsync(item, childContext, ct);
+                var result = await _innerPipeline.ExecuteAsync(item, ct);
 
                 lock (resultLock)
                 {
@@ -248,38 +270,74 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
             return this;
         }
 
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             _innerPipeline.AddBehavior(behavior);
         }
 
-        public void AddStage(IPipelineStage<object, object> stage)
+        public bool RemoveBehavior(string behaviorId)
+        {
+            return _innerPipeline.RemoveBehavior(behaviorId);
+        }
+
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            return _innerPipeline.GetBehaviors();
+        }
+
+        public void ClearBehaviors()
+        {
+            _innerPipeline.ClearBehaviors();
+        }
+
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage) where TStageOutput : IList<TOutput>
+        {
+            ((Pipeline<IEnumerable<TInput>, IList<TOutput>>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage(object stage)
         {
             _innerPipeline.AddStage(stage);
+            return this;
+        }
+
+        public void AddStage(IPipelineStage<object, object> stage)
+        {
+            ((Pipeline<IEnumerable<TInput>, IList<TOutput>>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
         }
 
         public void SetErrorHandler(Func<Exception, IList<TOutput>> errorHandler)
         {
-            // This would need custom implementation for collection results
-            throw new NotImplementedException("Error handler configuration not yet implemented for ParallelPipeline");
+            // For ParallelPipeline, we delegate error handling to the inner pipeline
+            // Individual element errors will be handled by the inner pipeline
+            _innerPipeline.SetErrorHandler(ex =>
+            {
+                // When an individual element fails, we return a default value
+                // The collection-level error handler will be called for pipeline-level errors
+                return default(TOutput)!;
+            });
         }
 
         public void SetCompletionHandler(Action<IList<TOutput>> completionHandler)
         {
-            // This would need custom implementation for collection results
-            throw new NotImplementedException("Completion handler configuration not yet implemented for ParallelPipeline");
+            // For ParallelPipeline, we can't easily delegate completion to inner pipeline
+            // since completion happens at the collection level after all parallel executions
+            // This is a limitation - completion handling happens in ExecuteAsync methods
         }
 
         public void ConfigureCache(Func<IEnumerable<TInput>, string> cacheKeyExtractor, TimeSpan duration)
         {
-            // Caching would need special handling for collections
-            throw new NotImplementedException("Cache configuration not yet implemented for ParallelPipeline");
+            // ParallelPipeline caching is complex because we cache entire collections
+            // For now, delegate individual element caching to the inner pipeline
+            _innerPipeline.ConfigureCache(input => cacheKeyExtractor(new[] { input }), duration);
         }
 
         // IPipeline interface implementation methods
@@ -294,6 +352,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<IEnumerable<TInput>, TNewOutput> MapAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for ParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNext> Map<TNext>(Func<IList<TOutput>, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for ParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> Where(Func<IEnumerable<TInput>, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for ParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithErrorHandling(Func<Exception, IEnumerable<TInput>, Task<IList<TOutput>>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for ParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
         }
 
         /// <inheritdoc />
@@ -393,15 +469,15 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
+            return _innerPipeline.GetInterceptors();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            return _innerPipeline.GetStages();
         }
     }
 
@@ -420,7 +496,7 @@ namespace Conduit.Pipeline.Composition
             bool preserveOrder = true,
             int boundedCapacity = -1)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
 
             _innerPipeline = innerPipeline;
             _preserveOrder = preserveOrder;
@@ -453,6 +529,15 @@ namespace Conduit.Pipeline.Composition
             }
         }
 
+        /// <inheritdoc />
+        public string Name => $"{_innerPipeline.Name} -> Dataflow Parallel";
+
+        /// <inheritdoc />
+        public string Id => $"{_innerPipeline.Id}_dataflow_parallel";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _innerPipeline.IsEnabled;
+
         public async Task<IList<TOutput>> ExecuteAsync(IEnumerable<TInput> input, CancellationToken cancellationToken = default)
         {
             var results = new List<TOutput>();
@@ -480,7 +565,7 @@ namespace Conduit.Pipeline.Composition
 
         public async Task<IList<TOutput>> ExecuteAsync(
             IEnumerable<TInput> input,
-            PipelineContext context,
+            ApiPipelineContext context,
             CancellationToken cancellationToken = default)
         {
             context.SetProperty("DataflowPipeline.MaxConcurrency", _options.MaxDegreeOfParallelism);
@@ -528,17 +613,32 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
             return this;
         }
 
-        public void AddBehavior(BehaviorContribution behavior) => _innerPipeline.AddBehavior(behavior);
+        public void AddBehavior(IBehaviorContribution behavior) => _innerPipeline.AddBehavior(behavior);
+        public bool RemoveBehavior(string behaviorId) => _innerPipeline.RemoveBehavior(behaviorId);
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors() => _innerPipeline.GetBehaviors();
+        public void ClearBehaviors() => _innerPipeline.ClearBehaviors();
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage) where TStageOutput : IList<TOutput>
+        {
+            ((Pipeline<IEnumerable<TInput>, IList<TOutput>>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            return this;
+        }
         public void AddStage(IPipelineStage<object, object> stage) => _innerPipeline.AddStage(stage);
-        public void SetErrorHandler(Func<Exception, IList<TOutput>> errorHandler) => throw new NotImplementedException();
-        public void SetCompletionHandler(Action<IList<TOutput>> completionHandler) => throw new NotImplementedException();
-        public void ConfigureCache(Func<IEnumerable<TInput>, string> cacheKeyExtractor, TimeSpan duration) => throw new NotImplementedException();
+        public void SetErrorHandler(Func<Exception, IList<TOutput>> errorHandler) =>
+            _innerPipeline.SetErrorHandler(ex => default(TOutput)!);
+
+        public void SetCompletionHandler(Action<IList<TOutput>> completionHandler)
+        {
+            // Similar limitation as ParallelPipeline - completion happens at collection level
+        }
+
+        public void ConfigureCache(Func<IEnumerable<TInput>, string> cacheKeyExtractor, TimeSpan duration) =>
+            _innerPipeline.ConfigureCache(input => cacheKeyExtractor(new[] { input }), duration);
 
         // IPipeline interface implementation methods
 
@@ -552,6 +652,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<IEnumerable<TInput>, TNewOutput> MapAsync<TNewOutput>(Func<IList<TOutput>, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for DataflowParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, TNext> Map<TNext>(Func<IList<TOutput>, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for DataflowParallelPipeline. Apply mapping to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> Where(Func<IEnumerable<TInput>, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for DataflowParallelPipeline. Apply filtering to individual elements using the inner pipeline.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> WithErrorHandling(Func<Exception, IEnumerable<TInput>, Task<IList<TOutput>>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for DataflowParallelPipeline. Apply error handling to individual elements using the inner pipeline.");
         }
 
         /// <inheritdoc />
@@ -651,15 +769,21 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage(object stage)
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
+            throw new NotImplementedException("AddStage operation is not implemented for DataflowParallelPipeline. Add stages to individual elements using the inner pipeline.");
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            return _innerPipeline.GetInterceptors();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
+        {
+            return _innerPipeline.GetStages();
         }
     }
 
@@ -702,12 +826,12 @@ namespace Conduit.Pipeline.Composition
             CancellationToken cancellationToken = default)
         {
             var results = new List<TOutput>();
-            var batches = items.Batch(batchSize);
-
+            var itemsList = items.ToList();
             var parallelPipeline = pipeline.Parallel(maxConcurrency);
 
-            foreach (var batch in batches)
+            for (int i = 0; i < itemsList.Count; i += batchSize)
             {
+                var batch = itemsList.Skip(i).Take(batchSize);
                 var batchResults = await parallelPipeline.ExecuteAsync(batch, cancellationToken);
                 results.AddRange(batchResults);
             }

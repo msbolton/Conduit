@@ -312,8 +312,8 @@ public static class TaskExtensions
         this Task<T> task,
         Func<T, TResult> transform)
     {
-        Guard.NotNull(task);
-        Guard.NotNull(transform);
+        _ = Guard.NotNull(task);
+        _ = Guard.NotNull(transform);
 
         var result = await task.ConfigureAwait(false);
         return transform(result);
@@ -326,8 +326,8 @@ public static class TaskExtensions
         this Task<T> task,
         Func<T, Task<TResult>> transform)
     {
-        Guard.NotNull(task);
-        Guard.NotNull(transform);
+        _ = Guard.NotNull(task);
+        _ = Guard.NotNull(transform);
 
         var result = await task.ConfigureAwait(false);
         return await transform(result).ConfigureAwait(false);
@@ -340,8 +340,8 @@ public static class TaskExtensions
         this Task<T> task,
         Action finallyAction)
     {
-        Guard.NotNull(task);
-        Guard.NotNull(finallyAction);
+        _ = Guard.NotNull(task);
+        _ = Guard.NotNull(finallyAction);
 
         try
         {
@@ -360,8 +360,8 @@ public static class TaskExtensions
         this Task<T> task,
         Func<Task> finallyAction)
     {
-        Guard.NotNull(task);
-        Guard.NotNull(finallyAction);
+        _ = Guard.NotNull(task);
+        _ = Guard.NotNull(finallyAction);
 
         try
         {

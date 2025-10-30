@@ -36,7 +36,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>A wrapped behavior</returns>
         public IPipelineBehavior Wrap(IPipelineBehavior wrapper)
         {
-            Guard.AgainstNull(wrapper, nameof(wrapper));
+            Guard.NotNull(wrapper, nameof(wrapper));
             return new WrappedBehavior(this, wrapper);
         }
 
@@ -47,7 +47,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>A chained behavior</returns>
         public IPipelineBehavior AndThen(IPipelineBehavior after)
         {
-            Guard.AgainstNull(after, nameof(after));
+            Guard.NotNull(after, nameof(after));
             return new ChainedBehavior(this, after);
         }
 
@@ -61,8 +61,8 @@ namespace Conduit.Core.Behaviors
             Predicate<PipelineContext> predicate,
             IPipelineBehavior behavior)
         {
-            Guard.AgainstNull(predicate, nameof(predicate));
-            Guard.AgainstNull(behavior, nameof(behavior));
+            Guard.NotNull(predicate, nameof(predicate));
+            Guard.NotNull(behavior, nameof(behavior));
 
             return new ConditionalBehavior(predicate, behavior);
         }
@@ -77,8 +77,8 @@ namespace Conduit.Core.Behaviors
             IPipelineBehavior behavior,
             Func<Exception, object?> errorHandler)
         {
-            Guard.AgainstNull(behavior, nameof(behavior));
-            Guard.AgainstNull(errorHandler, nameof(errorHandler));
+            Guard.NotNull(behavior, nameof(behavior));
+            Guard.NotNull(errorHandler, nameof(errorHandler));
 
             return new ErrorHandlingBehavior(behavior, errorHandler);
         }
@@ -100,7 +100,7 @@ namespace Conduit.Core.Behaviors
         public static IPipelineBehavior FromFunc(
             Func<PipelineContext, IBehaviorChain, Task<object?>> execute)
         {
-            Guard.AgainstNull(execute, nameof(execute));
+            Guard.NotNull(execute, nameof(execute));
             return new FunctionalBehavior(execute);
         }
     }

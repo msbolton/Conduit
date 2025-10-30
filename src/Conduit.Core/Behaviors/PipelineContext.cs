@@ -92,7 +92,7 @@ namespace Conduit.Core.Behaviors
         /// <param name="value">The property value</param>
         public void SetProperty(string key, object? value)
         {
-            Guard.AgainstNullOrEmpty(key, nameof(key));
+            Guard.NotNullOrEmpty(key, nameof(key));
             _properties[key] = value;
         }
 
@@ -103,7 +103,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>The property value, or null if not found</returns>
         public object? GetProperty(string key)
         {
-            Guard.AgainstNullOrEmpty(key, nameof(key));
+            Guard.NotNullOrEmpty(key, nameof(key));
             return _properties.TryGetValue(key, out var value) ? value : null;
         }
 
@@ -128,7 +128,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>The property value or default</returns>
         public T GetPropertyOrDefault<T>(string key, T defaultValue = default!)
         {
-            Guard.AgainstNullOrEmpty(key, nameof(key));
+            Guard.NotNullOrEmpty(key, nameof(key));
 
             if (_properties.TryGetValue(key, out var value) && value is T typedValue)
             {
@@ -145,7 +145,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>True if the property exists</returns>
         public bool HasProperty(string key)
         {
-            Guard.AgainstNullOrEmpty(key, nameof(key));
+            Guard.NotNullOrEmpty(key, nameof(key));
             return _properties.ContainsKey(key);
         }
 
@@ -156,7 +156,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>True if the property was removed</returns>
         public bool RemoveProperty(string key)
         {
-            Guard.AgainstNullOrEmpty(key, nameof(key));
+            Guard.NotNullOrEmpty(key, nameof(key));
             return _properties.TryRemove(key, out _);
         }
 
@@ -254,7 +254,7 @@ namespace Conduit.Core.Behaviors
         /// <param name="other">The context to merge from</param>
         public void MergeFrom(PipelineContext other)
         {
-            Guard.AgainstNull(other, nameof(other));
+            Guard.NotNull(other, nameof(other));
 
             foreach (var kvp in other._properties)
             {

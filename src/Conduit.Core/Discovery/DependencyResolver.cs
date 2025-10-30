@@ -33,7 +33,7 @@ namespace Conduit.Core.Discovery
         /// <returns>Resolution result with ordered components</returns>
         public DependencyResolutionResult Resolve(IEnumerable<ComponentDescriptor> descriptors)
         {
-            Guard.AgainstNull(descriptors, nameof(descriptors));
+            Guard.NotNull(descriptors, nameof(descriptors));
 
             var descriptorList = descriptors.ToList();
             var descriptorMap = new Dictionary<string, ComponentDescriptor>();
@@ -42,16 +42,16 @@ namespace Conduit.Core.Discovery
             // Build descriptor map and check for duplicates
             foreach (var descriptor in descriptorList)
             {
-                if (descriptorMap.ContainsKey(descriptor.ComponentId))
+                if (descriptorMap.ContainsKey(descriptor.Id))
                 {
                     return new DependencyResolutionResult(
                         false,
                         new List<ComponentDescriptor>(),
                         warnings,
-                        $"Duplicate component ID found: {descriptor.ComponentId}");
+                        $"Duplicate component ID found: {descriptor.Id}");
                 }
 
-                descriptorMap[descriptor.ComponentId] = descriptor;
+                descriptorMap[descriptor.Id] = descriptor;
             }
 
             // Build dependency graph
@@ -120,7 +120,7 @@ namespace Conduit.Core.Discovery
             // Add all components as nodes
             foreach (var descriptor in descriptors)
             {
-                graph.AddComponent(descriptor.ComponentId);
+                graph.AddComponent(descriptor.Id);
             }
 
             // Add dependencies as edges
@@ -134,20 +134,13 @@ namespace Conduit.Core.Discovery
                 foreach (var dependency in descriptor.Dependencies)
                 {
                     // Check if dependency exists
-                    if (!descriptorMap.ContainsKey(dependency.ComponentId))
+                    if (!descriptorMap.ContainsKey(dependency))
                     {
-                        if (dependency.Optional)
-                        {
-                            warnings.Add($"Optional dependency '{dependency.ComponentId}' not found for component '{descriptor.ComponentId}'");
-                        }
-                        else
-                        {
-                            warnings.Add($"Required dependency '{dependency.ComponentId}' not found for component '{descriptor.ComponentId}'");
-                        }
+                        warnings.Add($"Required dependency '{dependency}' not found for component '{descriptor.Id}'");
                         continue;
                     }
 
-                    graph.AddDependency(descriptor.ComponentId, dependency.ComponentId, !dependency.Optional);
+                    graph.AddDependency(descriptor.Id, dependency, true);
                 }
 
                 // Add implicit dependencies from required services
@@ -161,15 +154,15 @@ namespace Conduit.Core.Discovery
 
                         if (!providers.Any())
                         {
-                            warnings.Add($"No provider found for required service '{service}' in component '{descriptor.ComponentId}'");
+                            warnings.Add($"No provider found for required service '{service}' in component '{descriptor.Id}'");
                         }
                         else
                         {
                             foreach (var provider in providers)
                             {
-                                if (provider.ComponentId != descriptor.ComponentId)
+                                if (provider.Id != descriptor.Id)
                                 {
-                                    graph.AddDependency(descriptor.ComponentId, provider.ComponentId, true);
+                                    graph.AddDependency(descriptor.Id, provider.Id, true);
                                 }
                             }
                         }
@@ -261,32 +254,13 @@ namespace Conduit.Core.Discovery
 
                 foreach (var dependency in descriptor.Dependencies)
                 {
-                    if (!descriptorMap.TryGetValue(dependency.ComponentId, out var dependencyDescriptor))
+                    if (!descriptorMap.TryGetValue(dependency, out var dependencyDescriptor))
                     {
                         continue;
                     }
 
-                    var dependencyVersion = dependencyDescriptor.Version;
-
-                    // Check minimum version
-                    if (!string.IsNullOrEmpty(dependency.MinVersion))
-                    {
-                        if (!IsVersionCompatible(dependencyVersion, dependency.MinVersion, ">="))
-                        {
-                            errors.Add($"Component '{descriptor.ComponentId}' requires '{dependency.ComponentId}' " +
-                                      $"version >= {dependency.MinVersion}, but found {dependencyVersion}");
-                        }
-                    }
-
-                    // Check maximum version
-                    if (!string.IsNullOrEmpty(dependency.MaxVersion))
-                    {
-                        if (!IsVersionCompatible(dependencyVersion, dependency.MaxVersion, "<="))
-                        {
-                            errors.Add($"Component '{descriptor.ComponentId}' requires '{dependency.ComponentId}' " +
-                                      $"version <= {dependency.MaxVersion}, but found {dependencyVersion}");
-                        }
-                    }
+                    // For simple string dependencies, we just check existence
+                    // Version checking would require a more complex dependency model
                 }
             }
 

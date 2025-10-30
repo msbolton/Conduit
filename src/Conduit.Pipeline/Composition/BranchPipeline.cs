@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Pipeline.Behaviors;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using RetryPolicy = Conduit.Api.RetryPolicy;
+using IPipelineInterceptor = Conduit.Api.IPipelineInterceptor;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -34,9 +38,9 @@ namespace Conduit.Pipeline.Composition
             IPipeline<TInput, TOutput> trueBranch,
             IPipeline<TInput, TOutput> falseBranch)
         {
-            Guard.AgainstNull(condition, nameof(condition));
-            Guard.AgainstNull(trueBranch, nameof(trueBranch));
-            Guard.AgainstNull(falseBranch, nameof(falseBranch));
+            Guard.NotNull(condition, nameof(condition));
+            Guard.NotNull(trueBranch, nameof(trueBranch));
+            Guard.NotNull(falseBranch, nameof(falseBranch));
 
             _condition = condition;
             _trueBranch = trueBranch;
@@ -55,9 +59,9 @@ namespace Conduit.Pipeline.Composition
             IPipeline<TInput, TOutput> trueBranch,
             IPipeline<TInput, TOutput> falseBranch)
         {
-            Guard.AgainstNull(asyncPredicate, nameof(asyncPredicate));
-            Guard.AgainstNull(trueBranch, nameof(trueBranch));
-            Guard.AgainstNull(falseBranch, nameof(falseBranch));
+            Guard.NotNull(asyncPredicate, nameof(asyncPredicate));
+            Guard.NotNull(trueBranch, nameof(trueBranch));
+            Guard.NotNull(falseBranch, nameof(falseBranch));
 
             _asyncPredicate = asyncPredicate;
             _condition = _ => false; // Won't be used
@@ -95,6 +99,15 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
+        public string Name => "Branch Pipeline";
+
+        /// <inheritdoc />
+        public string Id => $"branch_{_trueBranch.Id}_{_falseBranch.Id}";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _trueBranch.IsEnabled && _falseBranch.IsEnabled;
+
+        /// <inheritdoc />
         public async Task<TOutput> ExecuteAsync(TInput input, CancellationToken cancellationToken = default)
         {
             // Evaluate the condition
@@ -115,7 +128,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public async Task<TOutput> ExecuteAsync(TInput input, PipelineContext context, CancellationToken cancellationToken = default)
+        public async Task<TOutput> ExecuteAsync(TInput input, Conduit.Api.PipelineContext context, CancellationToken cancellationToken = default)
         {
             context.SetProperty("BranchPipeline.Stage", "EvaluatingCondition");
 
@@ -143,7 +156,7 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds an interceptor to both branches.
         /// </summary>
-        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _trueBranch.AddInterceptor(interceptor);
             _falseBranch.AddInterceptor(interceptor);
@@ -153,10 +166,55 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds a behavior to both branches.
         /// </summary>
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             _trueBranch.AddBehavior(behavior);
             _falseBranch.AddBehavior(behavior);
+        }
+
+        /// <summary>
+        /// Removes a behavior from both branches.
+        /// </summary>
+        public bool RemoveBehavior(string behaviorId)
+        {
+            var result1 = _trueBranch.RemoveBehavior(behaviorId);
+            var result2 = _falseBranch.RemoveBehavior(behaviorId);
+            return result1 || result2;
+        }
+
+        /// <summary>
+        /// Gets behaviors from the true branch (as representative).
+        /// </summary>
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            return _trueBranch.GetBehaviors();
+        }
+
+        /// <summary>
+        /// Clears behaviors from both branches.
+        /// </summary>
+        public void ClearBehaviors()
+        {
+            _trueBranch.ClearBehaviors();
+            _falseBranch.ClearBehaviors();
+        }
+
+        /// <summary>
+        /// Adds a stage to both branches.
+        /// </summary>
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<TOutput, TStageOutput> stage) where TStageOutput : TOutput
+        {
+            _trueBranch.AddStage(stage);
+            _falseBranch.AddStage(stage);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage(object stage)
+        {
+            _trueBranch.AddStage(stage);
+            _falseBranch.AddStage(stage);
+            return this;
         }
 
         /// <summary>
@@ -164,8 +222,8 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void AddStage(IPipelineStage<object, object> stage)
         {
-            _trueBranch.AddStage(stage);
-            _falseBranch.AddStage(stage);
+            ((Pipeline<TInput, TOutput>)_trueBranch)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            ((Pipeline<TInput, TOutput>)_falseBranch)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
         }
 
         /// <summary>
@@ -207,6 +265,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for BranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNext> Map<TNext>(Func<TOutput, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for BranchPipeline. Apply mapping to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Where(Func<TInput, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for BranchPipeline. Apply filtering before branching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithErrorHandling(Func<Exception, TInput, Task<TOutput>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for BranchPipeline. Apply error handling to individual branches.");
         }
 
         /// <inheritdoc />
@@ -306,15 +382,21 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
+            var interceptors = new List<Conduit.Api.IPipelineInterceptor>();
+            interceptors.AddRange(_trueBranch.GetInterceptors());
+            interceptors.AddRange(_falseBranch.GetInterceptors());
+            return interceptors.AsReadOnly();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            var stages = new List<Conduit.Api.IPipelineStage<object, object>>();
+            stages.AddRange(_trueBranch.GetStages());
+            stages.AddRange(_falseBranch.GetStages());
+            return stages.AsReadOnly();
         }
     }
 
@@ -350,8 +432,8 @@ namespace Conduit.Pipeline.Composition
             IPipeline<TInput, TOutput> pipeline,
             string? name = null)
         {
-            Guard.AgainstNull(condition, nameof(condition));
-            Guard.AgainstNull(pipeline, nameof(pipeline));
+            Guard.NotNull(condition, nameof(condition));
+            Guard.NotNull(pipeline, nameof(pipeline));
 
             _branches.Add((condition, pipeline, name ?? $"Branch {_branches.Count + 1}"));
             return this;
@@ -382,7 +464,16 @@ namespace Conduit.Pipeline.Composition
         public PipelineConfiguration Configuration =>
             _defaultBranch?.Configuration ??
             _branches.FirstOrDefault().Pipeline?.Configuration ??
-            PipelineConfiguration.Default();
+            PipelineConfiguration.Default;
+
+        /// <inheritdoc />
+        public string Name => "Multi-Branch Pipeline";
+
+        /// <inheritdoc />
+        public string Id => $"multibranch_{string.Join("_", _branches.Select(b => b.Pipeline.Id))}";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _branches.All(b => b.Pipeline.IsEnabled) && (_defaultBranch?.IsEnabled ?? true);
 
         /// <inheritdoc />
         public async Task<TOutput> ExecuteAsync(TInput input, CancellationToken cancellationToken = default)
@@ -404,7 +495,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public async Task<TOutput> ExecuteAsync(TInput input, PipelineContext context, CancellationToken cancellationToken = default)
+        public async Task<TOutput> ExecuteAsync(TInput input, Conduit.Api.PipelineContext context, CancellationToken cancellationToken = default)
         {
             context.SetProperty("MultiBranchPipeline.Stage", "EvaluatingConditions");
 
@@ -431,7 +522,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Other interface methods implementation...
-        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             foreach (var (_, pipeline, _) in _branches)
             {
@@ -441,7 +532,7 @@ namespace Conduit.Pipeline.Composition
             return this;
         }
 
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             foreach (var (_, pipeline, _) in _branches)
             {
@@ -450,13 +541,103 @@ namespace Conduit.Pipeline.Composition
             _defaultBranch?.AddBehavior(behavior);
         }
 
-        public void AddStage(IPipelineStage<object, object> stage)
+        /// <summary>
+        /// Removes a behavior from all branches.
+        /// </summary>
+        public bool RemoveBehavior(string behaviorId)
+        {
+            bool removed = false;
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                removed |= pipeline.RemoveBehavior(behaviorId);
+            }
+            if (_defaultBranch != null)
+            {
+                removed |= _defaultBranch.RemoveBehavior(behaviorId);
+            }
+            return removed;
+        }
+
+        /// <summary>
+        /// Gets all behaviors from all branches.
+        /// </summary>
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            var behaviors = new List<IBehaviorContribution>();
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                behaviors.AddRange(pipeline.GetBehaviors());
+            }
+            if (_defaultBranch != null)
+            {
+                behaviors.AddRange(_defaultBranch.GetBehaviors());
+            }
+            return behaviors.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Clears all behaviors from all branches.
+        /// </summary>
+        public void ClearBehaviors()
+        {
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                pipeline.ClearBehaviors();
+            }
+            _defaultBranch?.ClearBehaviors();
+        }
+
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<TOutput, TStageOutput> stage) where TStageOutput : TOutput
+        {
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                ((Pipeline<TInput, TOutput>)pipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+            if (_defaultBranch != null)
+            {
+                ((Pipeline<TInput, TOutput>)_defaultBranch)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage(object stage)
         {
             foreach (var (_, pipeline, _) in _branches)
             {
                 pipeline.AddStage(stage);
             }
             _defaultBranch?.AddStage(stage);
+            return this;
+        }
+
+        public void AddStage(IPipelineStage<object, object> stage)
+        {
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                ((Pipeline<TInput, TOutput>)pipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+            if (_defaultBranch != null)
+            {
+                ((Pipeline<TInput, TOutput>)_defaultBranch)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+        }
+
+        /// <summary>
+        /// Adds a stage to all branches.
+        /// </summary>
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
+            where TStageOutput : TOutput
+        {
+            foreach (var (_, pipeline, _) in _branches)
+            {
+                ((Pipeline<TInput, TOutput>)pipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+            if (_defaultBranch != null)
+            {
+                ((Pipeline<TInput, TOutput>)_defaultBranch)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            }
+            return this;
         }
 
         public void SetErrorHandler(Func<Exception, TOutput> errorHandler)
@@ -498,6 +679,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for MultiBranchPipeline. Consider using Then() with a mapped pipeline instead.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNext> Map<TNext>(Func<TOutput, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for MultiBranchPipeline. Apply mapping to individual branches.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Where(Func<TInput, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for MultiBranchPipeline. Apply filtering before branching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithErrorHandling(Func<Exception, TInput, Task<TOutput>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for MultiBranchPipeline. Apply error handling to individual branches.");
         }
 
         /// <inheritdoc />
@@ -590,22 +789,33 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(IPipelineStage<TOutput, TStageOutput> stage)
-            where TStageOutput : TOutput
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            throw new NotImplementedException("AddStage operation is not implemented for MultiBranchPipeline. Add stages to individual branches.");
+            var interceptors = new List<Conduit.Api.IPipelineInterceptor>();
+            foreach (var branch in _branches)
+            {
+                interceptors.AddRange(branch.Pipeline.GetInterceptors());
+            }
+            if (_defaultBranch != null)
+            {
+                interceptors.AddRange(_defaultBranch.GetInterceptors());
+            }
+            return interceptors.AsReadOnly();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
-        }
-
-        /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
-        {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            var stages = new List<Conduit.Api.IPipelineStage<object, object>>();
+            foreach (var branch in _branches)
+            {
+                stages.AddRange(branch.Pipeline.GetStages());
+            }
+            if (_defaultBranch != null)
+            {
+                stages.AddRange(_defaultBranch.GetStages());
+            }
+            return stages.AsReadOnly();
         }
     }
 

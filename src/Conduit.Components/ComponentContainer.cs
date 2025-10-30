@@ -18,7 +18,7 @@ namespace Conduit.Components
     {
         private readonly ComponentFactory _factory;
         private readonly IMessageBus? _messageBus;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly System.IServiceProvider _serviceProvider;
         private readonly ILogger<ComponentContainer> _logger;
         private readonly ConcurrentDictionary<string, IPluggableComponent> _components;
         private readonly ConcurrentDictionary<string, ComponentContext> _contexts;
@@ -27,7 +27,7 @@ namespace Conduit.Components
 
         public ComponentContainer(
             ComponentFactory factory,
-            IServiceProvider serviceProvider,
+            System.IServiceProvider serviceProvider,
             IMessageBus? messageBus = null,
             ILogger<ComponentContainer>? logger = null)
         {
@@ -64,11 +64,10 @@ namespace Conduit.Components
             _contexts[componentId] = context;
 
             // Attach component to container
-            component.OnAttach(context);
+            await component.OnAttachAsync(context, cancellationToken);
 
-            // Initialize component
+            // Initialize component (handled in OnAttachAsync)
             var config = configuration ?? new ComponentConfiguration();
-            await component.InitializeAsync(config, cancellationToken);
 
             // Store component
             _components[componentId] = component;
@@ -96,7 +95,7 @@ namespace Conduit.Components
             where TComponent : IPluggableComponent
         {
             var component = _factory.CreateComponent<TComponent>();
-            var manifest = component.GetManifest();
+            var manifest = component.Manifest;
 
             if (_components.ContainsKey(manifest.Id))
             {
@@ -109,11 +108,10 @@ namespace Conduit.Components
             _contexts[manifest.Id] = context;
 
             // Attach component to container
-            component.OnAttach(context);
+            await component.OnAttachAsync(context, cancellationToken);
 
-            // Initialize component
+            // Initialize component (handled in OnAttachAsync)
             var config = configuration ?? new ComponentConfiguration();
-            await component.InitializeAsync(config, cancellationToken);
 
             // Store component
             _components[manifest.Id] = component;
@@ -150,7 +148,7 @@ namespace Conduit.Components
             // Stop component if running
             if (component.GetState() == ComponentState.Running)
             {
-                await component.StopAsync(cancellationToken);
+                await component.OnDetachAsync(cancellationToken);
             }
 
             // Detach component
@@ -190,7 +188,7 @@ namespace Conduit.Components
             {
                 if (component.GetState() == ComponentState.Running)
                 {
-                    await component.StopAsync(cancellationToken);
+                    await component.OnDetachAsync(cancellationToken);
                 }
             }
 
@@ -233,11 +231,13 @@ namespace Conduit.Components
         /// <summary>
         /// Gets the health status of all components.
         /// </summary>
-        public ComponentContainerHealth GetHealth()
+        public async Task<ComponentContainerHealth> GetHealthAsync(CancellationToken cancellationToken = default)
         {
-            var componentHealths = _components.Values
-                .Select(c => c.CheckHealth())
+            var componentHealthTasks = _components.Values
+                .Select(c => c.CheckHealth(cancellationToken))
                 .ToList();
+
+            var componentHealths = await Task.WhenAll(componentHealthTasks);
 
             var isHealthy = componentHealths.All(h => h.IsHealthy);
 
@@ -247,7 +247,7 @@ namespace Conduit.Components
                 TotalComponents = _components.Count,
                 HealthyComponents = componentHealths.Count(h => h.IsHealthy),
                 UnhealthyComponents = componentHealths.Count(h => !h.IsHealthy),
-                ComponentHealths = componentHealths
+                ComponentHealths = componentHealths.ToList()
             };
         }
 
@@ -261,26 +261,24 @@ namespace Conduit.Components
 
         private ComponentContext CreateComponentContext(IPluggableComponent component)
         {
-            var manifest = component.GetManifest();
+            var manifest = component.Manifest;
 
-            return new ComponentContext
-            {
-                ComponentId = manifest.Id,
-                ComponentName = manifest.Name,
-                Services = _serviceProvider,
-                MessageBus = _messageBus,
-                Configuration = new ComponentConfiguration()
-            };
+            return new ComponentContext(
+                (Api.IServiceProvider)_serviceProvider,
+                _messageBus ?? throw new InvalidOperationException("MessageBus not configured"),
+                (Api.ILogger)_logger,
+                null! // TODO: Add IMetricsCollector when available
+            );
         }
 
         private void CollectBehaviorContributions(IPluggableComponent component)
         {
             var contributions = component.ContributeBehaviors();
-            if (contributions != null && contributions.Length > 0)
+            if (contributions != null && contributions.Any())
             {
                 _behaviors.AddRange(contributions.OfType<BehaviorContribution>());
                 _logger.LogDebug("Collected {Count} behavior contributions from component {ComponentId}",
-                    contributions.Length, component.Id);
+                    contributions.Count(), component.Id);
             }
         }
 
@@ -292,24 +290,24 @@ namespace Conduit.Components
             }
 
             var handlers = component.RegisterHandlers();
-            if (handlers != null && handlers.Length > 0)
+            if (handlers != null && handlers.Any())
             {
                 // Register handlers with message bus
                 // This would typically integrate with the MessageBus's handler registration
                 _logger.LogDebug("Registered {Count} message handlers from component {ComponentId}",
-                    handlers.Length, component.Id);
+                    handlers.Count(), component.Id);
             }
         }
 
         private void ExposeServices(IPluggableComponent component)
         {
             var services = component.ProvideServices();
-            if (services != null && services.Length > 0)
+            if (services != null && services.Any())
             {
                 // Register services with the service provider
                 // This would typically integrate with the DI container
                 _logger.LogDebug("Exposed {Count} services from component {ComponentId}",
-                    services.Length, component.Id);
+                    services.Count(), component.Id);
             }
         }
 

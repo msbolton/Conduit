@@ -111,7 +111,7 @@ namespace Conduit.Transports.Core
         {
             var transportMessage = new TransportMessage
             {
-                MessageId = message.Id,
+                MessageId = message.MessageId,
                 CorrelationId = message.CorrelationId,
                 Payload = payload,
                 ContentType = contentType,

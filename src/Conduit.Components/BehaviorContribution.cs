@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Pipeline;
+using Conduit.Pipeline.Behaviors;
 
 namespace Conduit.Components
 {
@@ -15,13 +16,21 @@ namespace Conduit.Components
     {
         public string Id { get; init; } = "";
         public string Name { get; init; } = "";
-        public string? Description { get; init; }
+        public string Description { get; init; } = "";
         public Func<IPipelineBehavior> Factory { get; init; } = null!;
-        public BehaviorPlacement Placement { get; init; } = BehaviorPlacement.Ordered(100);
-        public BehaviorConstraints Constraints { get; init; } = BehaviorConstraints.RunAlways();
         public int Priority { get; init; } = 100;
+        public bool IsEnabled { get; init; } = true;
+        public Api.BehaviorPhase Phase { get; init; } = Api.BehaviorPhase.Processing;
+        public BehaviorDelegate? Behavior { get; init; }
         public string[] Tags { get; init; } = Array.Empty<string>();
         public IDictionary<string, object> Metadata { get; init; } = new Dictionary<string, object>();
+
+        // Implement interface properties with different types using explicit interface implementation
+        public Pipeline.Behaviors.BehaviorPlacement Placement { get; init; } = Pipeline.Behaviors.BehaviorPlacement.Ordered(100);
+        Api.BehaviorPlacement? IBehaviorContribution.Placement => null; // Convert if needed
+        IReadOnlySet<string> IBehaviorContribution.Tags => Tags.ToHashSet();
+
+        public BehaviorConstraints Constraints { get; init; } = BehaviorConstraints.RunAlways();
 
         /// <summary>
         /// Creates a new behavior contribution builder.
@@ -57,7 +66,7 @@ namespace Conduit.Components
         private string _name = "";
         private string? _description;
         private Func<IPipelineBehavior>? _factory;
-        private BehaviorPlacement _placement = BehaviorPlacement.Ordered(100);
+        private Pipeline.Behaviors.BehaviorPlacement _placement = Pipeline.Behaviors.BehaviorPlacement.Ordered(100);
         private BehaviorConstraints _constraints = BehaviorConstraints.RunAlways();
         private int _priority = 100;
         private readonly List<string> _tags = new();
@@ -93,7 +102,7 @@ namespace Conduit.Components
             return this;
         }
 
-        public BehaviorContributionBuilder WithPlacement(BehaviorPlacement placement)
+        public BehaviorContributionBuilder WithPlacement(Pipeline.Behaviors.BehaviorPlacement placement)
         {
             _placement = placement;
             return this;
@@ -132,7 +141,7 @@ namespace Conduit.Components
             {
                 Id = _id,
                 Name = string.IsNullOrEmpty(_name) ? _id : _name,
-                Description = _description,
+                Description = _description ?? "",
                 Factory = _factory,
                 Placement = _placement,
                 Constraints = _constraints,
@@ -178,7 +187,7 @@ namespace Conduit.Components
         public static BehaviorConstraints WhenConfigurationEnabled(string settingName)
         {
             return new BehaviorConstraints(context =>
-                context.Configuration?.GetSetting<bool>(settingName) ?? false);
+                context.ConfigurationProvider?.GetValue<bool>(settingName, false) ?? false);
         }
 
         /// <summary>
@@ -236,11 +245,11 @@ namespace Conduit.Components
             _behavior = behavior;
         }
 
-        public async Task<object?> ExecuteAsync(object input, Func<object, Task<object?>> next)
+        public async Task<object?> ExecuteAsync(Pipeline.PipelineContext context, Pipeline.Behaviors.BehaviorChain next)
         {
-            return await _behavior(input, async () =>
+            return await _behavior(context, async () =>
             {
-                var result = await next(input);
+                var result = await next.ProceedAsync(context);
                 return result ?? new object();
             });
         }
@@ -296,6 +305,19 @@ namespace Conduit.Components
             return _contributions.Where(c => c.Tags.Contains(tag));
         }
 
+        private static BehaviorPlacementType GetPlacementType(Pipeline.Behaviors.PlacementStrategy strategy)
+        {
+            return strategy switch
+            {
+                Pipeline.Behaviors.PlacementStrategy.First => BehaviorPlacementType.First,
+                Pipeline.Behaviors.PlacementStrategy.Last => BehaviorPlacementType.Last,
+                Pipeline.Behaviors.PlacementStrategy.Ordered => BehaviorPlacementType.Ordered,
+                Pipeline.Behaviors.PlacementStrategy.Before => BehaviorPlacementType.Before,
+                Pipeline.Behaviors.PlacementStrategy.After => BehaviorPlacementType.After,
+                _ => BehaviorPlacementType.Ordered
+            };
+        }
+
         private static IEnumerable<BehaviorContribution> OrderContributions(
             IEnumerable<BehaviorContribution> contributions)
         {
@@ -306,7 +328,7 @@ namespace Conduit.Components
             // Group by placement type
             foreach (var contribution in list)
             {
-                var placementType = contribution.Placement.Type;
+                var placementType = GetPlacementType(contribution.Placement.Strategy);
                 if (!byPlacement.ContainsKey(placementType))
                 {
                     byPlacement[placementType] = new List<BehaviorContribution>();
@@ -332,7 +354,7 @@ namespace Conduit.Components
             {
                 foreach (var behavior in beforeBehaviors.OrderByDescending(b => b.Priority))
                 {
-                    var targetId = behavior.Placement.RelativeToId;
+                    var targetId = behavior.Placement.TargetBehaviorId;
                     var targetIndex = ordered.FindIndex(b => b.Id == targetId);
                     if (targetIndex >= 0)
                     {
@@ -349,7 +371,7 @@ namespace Conduit.Components
             {
                 foreach (var behavior in afterBehaviors.OrderByDescending(b => b.Priority))
                 {
-                    var targetId = behavior.Placement.RelativeToId;
+                    var targetId = behavior.Placement.TargetBehaviorId;
                     var targetIndex = ordered.FindIndex(b => b.Id == targetId);
                     if (targetIndex >= 0)
                     {

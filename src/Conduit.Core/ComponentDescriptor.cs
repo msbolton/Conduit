@@ -113,6 +113,21 @@ public class ComponentDescriptor
     public string? DiscoverySource { get; set; }
 
     /// <summary>
+    /// Gets or sets the component vendor.
+    /// </summary>
+    public string? Vendor { get; set; }
+
+    /// <summary>
+    /// Gets or sets the services required by this component.
+    /// </summary>
+    public HashSet<string> RequiredServices { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the services provided by this component.
+    /// </summary>
+    public HashSet<string> ProvidedServices { get; set; } = new();
+
+    /// <summary>
     /// Creates a descriptor from a component instance.
     /// </summary>
     public static ComponentDescriptor FromComponent(IPluggableComponent component)

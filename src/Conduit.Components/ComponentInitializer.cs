@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Core;
+using Conduit.Core.Discovery;
 using Microsoft.Extensions.Logging;
 
 namespace Conduit.Components
@@ -47,7 +48,12 @@ namespace Conduit.Components
             try
             {
                 // Resolve initialization order
-                var initializationOrder = _dependencyResolver.ResolveDependencies(descriptors);
+                var resolutionResult = _dependencyResolver.Resolve(descriptors);
+                if (!resolutionResult.Success)
+                {
+                    throw new InvalidOperationException($"Failed to resolve dependencies: {resolutionResult.ErrorMessage}");
+                }
+                var initializationOrder = resolutionResult.OrderedComponents;
 
                 _logger.LogDebug("Resolved initialization order: {Order}",
                     string.Join(" -> ", initializationOrder.Select(d => d.Id)));
@@ -129,7 +135,12 @@ namespace Conduit.Components
                 .ToList();
 
             // Resolve start order (same as initialization order)
-            var startOrder = _dependencyResolver.ResolveDependencies(descriptors);
+            var startOrderResult = _dependencyResolver.Resolve(descriptors);
+            if (!startOrderResult.Success)
+            {
+                throw new InvalidOperationException($"Failed to resolve dependencies: {startOrderResult.ErrorMessage}");
+            }
+            var startOrder = startOrderResult.OrderedComponents;
 
             // Start components in order
             foreach (var descriptor in startOrder)
@@ -191,7 +202,12 @@ namespace Conduit.Components
                 .ToList();
 
             // Resolve stop order (reverse of initialization order)
-            var stopOrder = _dependencyResolver.ResolveDependencies(descriptors).Reverse();
+            var stopOrderResult = _dependencyResolver.Resolve(descriptors);
+            if (!stopOrderResult.Success)
+            {
+                throw new InvalidOperationException($"Failed to resolve dependencies: {stopOrderResult.ErrorMessage}");
+            }
+            var stopOrder = stopOrderResult.OrderedComponents.Reverse();
 
             // Stop components in reverse order
             foreach (var descriptor in stopOrder)

@@ -172,7 +172,7 @@ namespace Conduit.Messaging
             Message = message;
             MessageId = message.MessageId ?? Guid.NewGuid().ToString();
             Timestamp = DateTimeOffset.UtcNow;
-            Headers = new Dictionary<string, string>(message.Headers ?? new Dictionary<string, string>());
+            Headers = message.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? "") ?? new Dictionary<string, string>();
             _items = new ConcurrentDictionary<string, object>();
 
             // Extract standard headers

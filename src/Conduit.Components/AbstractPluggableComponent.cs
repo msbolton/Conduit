@@ -14,7 +14,7 @@ namespace Conduit.Components
     /// </summary>
     public abstract class AbstractPluggableComponent : IPluggableComponent
     {
-        protected readonly ILogger Logger;
+        protected readonly Microsoft.Extensions.Logging.ILogger Logger;
         private ComponentState _state;
         private readonly object _stateLock = new();
         protected ComponentContext? Context;
@@ -25,13 +25,23 @@ namespace Conduit.Components
         /// <summary>
         /// Creates a new pluggable component.
         /// </summary>
-        protected AbstractPluggableComponent(ILogger? logger = null)
+        protected AbstractPluggableComponent(Microsoft.Extensions.Logging.ILogger? logger = null)
         {
             Logger = logger ?? NullLogger.Instance;
             _state = ComponentState.Uninitialized;
 
             // Load component data from attribute or create default
-            Manifest = ComponentManifest.FromType(GetType());
+            var type = GetType();
+            Manifest = new ComponentManifest
+            {
+                Id = type.FullName ?? type.Name,
+                Name = type.Name,
+                Version = "1.0.0",
+                Description = type.GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+                    .OfType<System.ComponentModel.DescriptionAttribute>()
+                    .FirstOrDefault()?.Description ?? "",
+                Scope = ComponentScope.Transient
+            };
         }
 
         // IComponent implementation
@@ -48,14 +58,14 @@ namespace Conduit.Components
             Configuration = configuration;
         }
 
-        public IServiceProvider? GetServices()
+        public System.IServiceProvider? GetServices()
         {
-            return Context?.Services;
+            return (System.IServiceProvider?)Context?.ServiceProvider;
         }
 
         public IMessageBus? GetMessageBus()
         {
-            return Context?.Find<IMessageBus>();
+            return Context?.MessageBus;
         }
 
         public void SetSecurityContext(ISecurityContext context)
@@ -247,6 +257,11 @@ namespace Conduit.Components
             }
         }
 
+        public virtual Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(CheckHealth());
+        }
+
         public ComponentMetrics GetMetrics()
         {
             var metrics = new ComponentMetrics(Id);
@@ -301,25 +316,25 @@ namespace Conduit.Components
             return Manifest;
         }
 
-        public virtual IBehaviorContribution[] ContributeBehaviors()
+        public virtual IEnumerable<IBehaviorContribution> ContributeBehaviors()
         {
             // Override in subclasses to contribute behaviors
             return Array.Empty<IBehaviorContribution>();
         }
 
-        public virtual ComponentFeature[] ExposeFeatures()
+        public virtual IEnumerable<ComponentFeature> ExposeFeatures()
         {
             // Override in subclasses to expose features
             return Array.Empty<ComponentFeature>();
         }
 
-        public virtual ServiceContract[] ProvideServices()
+        public virtual IEnumerable<ServiceContract> ProvideServices()
         {
             // Override in subclasses to provide services
             return Array.Empty<ServiceContract>();
         }
 
-        public virtual MessageHandlerRegistration[] RegisterHandlers()
+        public virtual IEnumerable<MessageHandlerRegistration> RegisterHandlers()
         {
             // Override in subclasses to register message handlers
             return Array.Empty<MessageHandlerRegistration>();
@@ -425,6 +440,42 @@ namespace Conduit.Components
                 _ => false
             };
         }
+
+        // Interface implementations
+        public virtual Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
+        {
+            Context = context;
+            return OnStartAsync(cancellationToken);
+        }
+
+        public virtual Task OnDetachAsync(CancellationToken cancellationToken = default)
+        {
+            return OnStopAsync(cancellationToken);
+        }
+
+
+        public virtual bool IsCompatibleWith(string coreVersion)
+        {
+            // Default implementation - override for specific version checks
+            return true;
+        }
+
+        // Interface properties
+        ComponentConfiguration? IPluggableComponent.Configuration
+        {
+            get => Configuration;
+            set => Configuration = value;
+        }
+
+        ISecurityContext? IPluggableComponent.SecurityContext
+        {
+            get => SecurityContext;
+            set => SecurityContext = value;
+        }
+
+        ComponentManifest IPluggableComponent.Manifest => Manifest;
+
+        public virtual Api.IsolationRequirements IsolationRequirements => Api.IsolationRequirements.Standard();
 
         public void Dispose()
         {

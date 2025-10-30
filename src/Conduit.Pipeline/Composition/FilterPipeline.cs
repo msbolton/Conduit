@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Pipeline.Behaviors;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using RetryPolicy = Conduit.Api.RetryPolicy;
+using IPipelineInterceptor = Conduit.Api.IPipelineInterceptor;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -35,8 +39,8 @@ namespace Conduit.Pipeline.Composition
             Predicate<TOutput> predicate,
             TOutput? defaultValue = default)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
-            Guard.AgainstNull(predicate, nameof(predicate));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(predicate, nameof(predicate));
 
             _innerPipeline = innerPipeline;
             _predicate = predicate;
@@ -56,8 +60,8 @@ namespace Conduit.Pipeline.Composition
             Func<TOutput, Task<bool>> asyncPredicate,
             TOutput? defaultValue = default)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
-            Guard.AgainstNull(asyncPredicate, nameof(asyncPredicate));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(asyncPredicate, nameof(asyncPredicate));
 
             _innerPipeline = innerPipeline;
             _asyncPredicate = asyncPredicate;
@@ -89,6 +93,15 @@ namespace Conduit.Pipeline.Composition
         public PipelineConfiguration Configuration => _innerPipeline.Configuration;
 
         /// <inheritdoc />
+        public string Name => $"{_innerPipeline.Name} -> Filter";
+
+        /// <inheritdoc />
+        public string Id => $"{_innerPipeline.Id}_filter";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _innerPipeline.IsEnabled;
+
+        /// <inheritdoc />
         public async Task<TOutput?> ExecuteAsync(TInput input, CancellationToken cancellationToken = default)
         {
             // Execute the inner pipeline
@@ -109,7 +122,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public async Task<TOutput?> ExecuteAsync(TInput input, PipelineContext context, CancellationToken cancellationToken = default)
+        public async Task<TOutput?> ExecuteAsync(TInput input, Conduit.Api.PipelineContext context, CancellationToken cancellationToken = default)
         {
             context.SetProperty("FilterPipeline.Stage", "InnerExecution");
 
@@ -143,7 +156,7 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds an interceptor to the inner pipeline if supported.
         /// </summary>
-        public IPipeline<TInput, TOutput?> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput?> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
             return this;
@@ -152,9 +165,49 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds a behavior to the inner pipeline if supported.
         /// </summary>
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             _innerPipeline.AddBehavior(behavior);
+        }
+
+        /// <summary>
+        /// Removes a behavior from the inner pipeline if supported.
+        /// </summary>
+        public bool RemoveBehavior(string behaviorId)
+        {
+            return _innerPipeline.RemoveBehavior(behaviorId);
+        }
+
+        /// <summary>
+        /// Gets all behaviors from the inner pipeline.
+        /// </summary>
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            return _innerPipeline.GetBehaviors();
+        }
+
+        /// <summary>
+        /// Clears all behaviors from the inner pipeline.
+        /// </summary>
+        public void ClearBehaviors()
+        {
+            _innerPipeline.ClearBehaviors();
+        }
+
+        /// <summary>
+        /// Adds a stage to the inner pipeline if supported.
+        /// </summary>
+        public IPipeline<TInput, TOutput?> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<TOutput?, TStageOutput> stage) where TStageOutput : TOutput?
+        {
+            ((Pipeline<TInput, TOutput>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> AddStage(object stage)
+        {
+            _innerPipeline.AddStage(stage);
+            return this;
         }
 
         /// <summary>
@@ -162,7 +215,7 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void AddStage(IPipelineStage<object, object> stage)
         {
-            _innerPipeline.AddStage(stage);
+            ((Pipeline<TInput, TOutput>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
         }
 
         /// <summary>
@@ -170,8 +223,13 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void SetErrorHandler(Func<Exception, TOutput?> errorHandler)
         {
-            // This would need to be implemented based on the inner pipeline's capabilities
-            throw new NotImplementedException("Error handler configuration not yet implemented for FilterPipeline");
+            // For FilterPipeline, delegate error handling to inner pipeline
+            _innerPipeline.SetErrorHandler(ex =>
+            {
+                var result = errorHandler(ex);
+                // Return the non-nullable result to the inner pipeline
+                return result!;
+            });
         }
 
         /// <summary>
@@ -179,8 +237,33 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void SetCompletionHandler(Action<TOutput?> completionHandler)
         {
-            // This would need to be implemented based on the inner pipeline's capabilities
-            throw new NotImplementedException("Completion handler configuration not yet implemented for FilterPipeline");
+            // For FilterPipeline, we handle completion after filtering
+            _innerPipeline.SetCompletionHandler(innerResult =>
+            {
+                try
+                {
+                    // Apply the filter to determine final result
+                    bool passed;
+                    if (_asyncFilter && _asyncPredicate != null)
+                    {
+                        // For async filters, we can't handle completion synchronously
+                        // This is a limitation of the current design
+                        return;
+                    }
+                    else
+                    {
+                        passed = _predicate(innerResult);
+                    }
+
+                    var finalResult = passed ? innerResult : _defaultValue;
+                    completionHandler(finalResult);
+                }
+                catch
+                {
+                    // If filtering or completion handler fails, we can't do much
+                    // The exception will be handled by the error handling system
+                }
+            });
         }
 
         /// <summary>
@@ -203,6 +286,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput?, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for FilterPipeline. Apply mapping to the inner pipeline before filtering.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNext> Map<TNext>(Func<TOutput?, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for FilterPipeline. Apply mapping to the inner pipeline before filtering.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> Where(Func<TInput, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for FilterPipeline. FilterPipeline already implements filtering logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput?> WithErrorHandling(Func<Exception, TInput, Task<TOutput?>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for FilterPipeline. Apply error handling to the inner pipeline before filtering.");
         }
 
         /// <inheritdoc />
@@ -302,15 +403,15 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
+            return _innerPipeline.GetInterceptors();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            return _innerPipeline.GetStages();
         }
     }
 

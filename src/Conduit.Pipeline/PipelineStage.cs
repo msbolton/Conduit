@@ -20,8 +20,8 @@ namespace Conduit.Pipeline
             string name,
             Func<TInput, TOutput> processor)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(processor, nameof(processor));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(processor, nameof(processor));
 
             return DelegateStage<TInput, TOutput>.Create(processor, name);
         }
@@ -33,8 +33,8 @@ namespace Conduit.Pipeline
             string name,
             Func<TInput, Task<TOutput>> processor)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(processor, nameof(processor));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(processor, nameof(processor));
 
             return DelegateStage<TInput, TOutput>.Create(processor, name);
         }
@@ -46,8 +46,8 @@ namespace Conduit.Pipeline
             string name,
             Func<TInput, PipelineContext, Task<TOutput>> processor)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(processor, nameof(processor));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(processor, nameof(processor));
 
             return new DelegateStage<TInput, TOutput>(processor, name);
         }
@@ -340,7 +340,7 @@ namespace Conduit.Pipeline
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 lock (_stateLock)
                 {

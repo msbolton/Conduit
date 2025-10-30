@@ -116,7 +116,7 @@ public class DefaultMetricsCollector : IMetricsCollector
     }
 
     /// <inheritdoc />
-    public ITimer StartTimer(string name, params (string Key, string Value)[] tags)
+    public Conduit.Api.ITimer StartTimer(string name, params (string Key, string Value)[] tags)
     {
         return new MetricTimer(this, name, CombineTags(tags));
     }
@@ -322,7 +322,7 @@ public class DefaultMetricsCollector : IMetricsCollector
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
     }
 
-    private class MetricTimer : ITimer
+    private class MetricTimer : Conduit.Api.ITimer
     {
         private readonly DefaultMetricsCollector _collector;
         private readonly string _name;

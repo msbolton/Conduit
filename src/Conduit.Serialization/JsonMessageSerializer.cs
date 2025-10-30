@@ -422,7 +422,7 @@ namespace Conduit.Serialization
         {
             if (data == null || data.Length == 0)
             {
-                return data;
+                return data ?? Array.Empty<byte>();
             }
 
             using var outputStream = new MemoryStream();
@@ -437,7 +437,7 @@ namespace Conduit.Serialization
         {
             if (compressedData == null || compressedData.Length == 0)
             {
-                return compressedData;
+                return compressedData ?? Array.Empty<byte>();
             }
 
             using var inputStream = new MemoryStream(compressedData);

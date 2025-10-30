@@ -209,6 +209,7 @@ namespace Conduit.Messaging
         string Id { get; }
         bool IsActive { get; }
         SubscriptionOptions Options { get; }
+        Func<object, bool>? Filter { get; }
         Task HandleAsync(object message, MessageContext context, CancellationToken cancellationToken);
     }
 
@@ -227,6 +228,9 @@ namespace Conduit.Messaging
         public bool IsActive => _isActive;
 
         public Func<TMessage, bool>? Filter => _filter;
+
+        Func<object, bool>? IMessageSubscription.Filter =>
+            _filter != null ? obj => obj is TMessage msg && _filter(msg) : null;
 
         public MessageSubscription(
             string id,

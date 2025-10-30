@@ -63,7 +63,6 @@ public abstract class PipelineStage<TInput, TOutput> : IPipelineStage<TInput, TO
     /// Filters the output.
     /// </summary>
     public IPipelineStage<TInput, TOutput?> Filter(Predicate<TOutput> predicate)
-        where TOutput : class
     {
         return new FilteringStage<TInput, TOutput>(this, predicate);
     }
@@ -193,7 +192,6 @@ internal class AsyncMappingStage<TInput, TOriginalOutput, TNewOutput> : Pipeline
 /// A stage that filters output.
 /// </summary>
 internal class FilteringStage<TInput, TOutput> : PipelineStage<TInput, TOutput?>
-    where TOutput : class
 {
     private readonly IPipelineStage<TInput, TOutput> _innerStage;
     private readonly Predicate<TOutput> _predicate;
@@ -209,6 +207,6 @@ internal class FilteringStage<TInput, TOutput> : PipelineStage<TInput, TOutput?>
     public override async Task<TOutput?> ProcessAsync(TInput input, PipelineContext context)
     {
         var result = await _innerStage.ProcessAsync(input, context);
-        return _predicate(result) ? result : null;
+        return _predicate(result) ? result : default(TOutput);
     }
 }

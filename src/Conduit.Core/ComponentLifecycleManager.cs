@@ -15,14 +15,14 @@ public class ComponentLifecycleManager
     private readonly ComponentRegistry _registry;
     private readonly ILogger<ComponentLifecycleManager>? _logger;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _componentLocks = new();
-    private readonly IServiceProvider? _serviceProvider;
+    private readonly System.IServiceProvider? _serviceProvider;
 
     /// <summary>
     /// Initializes a new instance of the ComponentLifecycleManager class.
     /// </summary>
     public ComponentLifecycleManager(
         ComponentRegistry registry,
-        IServiceProvider? serviceProvider = null,
+        System.IServiceProvider? serviceProvider = null,
         ILogger<ComponentLifecycleManager>? logger = null)
     {
         _registry = Guard.NotNull(registry);
@@ -395,14 +395,18 @@ public class ComponentLifecycleManager
         var messageBus = _serviceProvider?.GetService(typeof(IMessageBus)) as IMessageBus
             ?? throw new InvalidOperationException("IMessageBus service not available");
 
-        var logger = _serviceProvider?.GetService(typeof(ILogger)) as ILogger
+        var logger = _serviceProvider?.GetService(typeof(Conduit.Api.ILogger)) as Conduit.Api.ILogger
             ?? throw new InvalidOperationException("ILogger service not available");
 
         var metricsCollector = _serviceProvider?.GetService(typeof(IMetricsCollector)) as IMetricsCollector
             ?? throw new InvalidOperationException("IMetricsCollector service not available");
 
+        var wrappedServiceProvider = _serviceProvider != null
+            ? new ServiceProviderWrapper(_serviceProvider)
+            : throw new InvalidOperationException("Service provider not available");
+
         return new ComponentContext(
-            _serviceProvider ?? throw new InvalidOperationException("Service provider not available"),
+            wrappedServiceProvider,
             messageBus,
             logger,
             metricsCollector)
@@ -421,5 +425,28 @@ public class ComponentLifecycleManager
             d.State = newState;
             d.LastError = error;
         });
+    }
+}
+
+/// <summary>
+/// Wraps System.IServiceProvider to implement Conduit.Api.IServiceProvider
+/// </summary>
+internal class ServiceProviderWrapper : Conduit.Api.IServiceProvider
+{
+    private readonly System.IServiceProvider _serviceProvider;
+
+    public ServiceProviderWrapper(System.IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    }
+
+    public T GetRequiredService<T>() where T : notnull
+    {
+        return (T)(_serviceProvider.GetService(typeof(T)) ?? throw new InvalidOperationException($"Service of type {typeof(T).Name} not found"));
+    }
+
+    public T? GetService<T>() where T : class
+    {
+        return _serviceProvider.GetService(typeof(T)) as T;
     }
 }

@@ -20,6 +20,9 @@ namespace Conduit.Transports.ActiveMq
         private readonly ILogger<ActiveMqTransport> _logger;
         private readonly ConcurrentDictionary<string, ActiveMqSubscription> _subscriptions;
 
+        public override TransportType Type => TransportType.Amqp;
+        public override string Name => "ActiveMQ";
+
         private IConnectionFactory? _connectionFactory;
         private IConnection? _connection;
         private ISession? _session;
@@ -33,7 +36,7 @@ namespace Conduit.Transports.ActiveMq
         public ActiveMqTransport(
             ActiveMqConfiguration configuration,
             ILogger<ActiveMqTransport> logger)
-            : base(TransportType.Amqp, "ActiveMQ", configuration, logger)
+            : base(configuration, logger)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -81,8 +84,7 @@ namespace Conduit.Transports.ActiveMq
                     _connection.ClientId = _configuration.ClientId;
                 }
 
-                // Set close timeout
-                _connection.CloseTimeout = TimeSpan.FromMilliseconds(_configuration.CloseTimeout);
+                // Note: CloseTimeout not available in this NMS API version
 
                 // Set exception listener
                 _connection.ExceptionListener += OnConnectionException;
@@ -138,7 +140,7 @@ namespace Conduit.Transports.ActiveMq
         /// <summary>
         /// Sends a message to the broker.
         /// </summary>
-        protected override async Task SendCoreAsync(IMessage message, string? destination, CancellationToken cancellationToken)
+        protected override async Task SendCoreAsync(Conduit.Api.IMessage message, string? destination, CancellationToken cancellationToken)
         {
             if (_session == null)
                 throw new InvalidOperationException("Not connected to ActiveMQ broker");
@@ -149,7 +151,18 @@ namespace Conduit.Transports.ActiveMq
             _logger.LogDebug("Sending message {MessageId} to {Destination}", message.MessageId, destination);
 
             // Convert Conduit message to transport message
-            var transportMessage = CreateTransportMessage(message, destination);
+            var transportMessage = new TransportMessage
+            {
+                MessageId = message.MessageId,
+                CorrelationId = message.CorrelationId,
+                CausationId = message.CausationId,
+                Payload = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(message)),
+                ContentType = "application/json",
+                MessageType = message.GetType().Name,
+                Source = Name,
+                Destination = destination,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
             // Convert to NMS message
             var nmsMessage = _messageConverter.ToNmsMessage(transportMessage, _session);
@@ -302,7 +315,10 @@ namespace Conduit.Transports.ActiveMq
             _logger.LogError(exception, "ActiveMQ connection exception occurred");
 
             // Mark as disconnected
-            OnConnectionStateChanged(false);
+            lock (_stateLock)
+            {
+                IsConnected = false;
+            }
 
             // Attempt reconnection if auto-reconnect is enabled
             if (_configuration.Connection.AutoReconnect)
@@ -325,7 +341,7 @@ namespace Conduit.Transports.ActiveMq
         /// <summary>
         /// Maps acknowledgement mode to NMS AcknowledgementMode.
         /// </summary>
-        private AcknowledgementMode MapAcknowledgementMode(AcknowledgementMode mode)
+        private Apache.NMS.AcknowledgementMode MapAcknowledgementMode(AcknowledgementMode mode)
         {
             return mode switch
             {

@@ -38,7 +38,7 @@ namespace Conduit.Serialization
             {
                 ValidateInput(obj);
 
-                var msgpackBytes = MessagePackSerializer.Serialize(obj, _options);
+                var msgpackBytes = global::MessagePack.MessagePackSerializer.Serialize(obj, _options);
 
                 if (_serializationOptions.UseCompression)
                 {
@@ -77,12 +77,12 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionLevel.Optimal, leaveOpen: true);
-                    await MessagePackSerializer.SerializeAsync(gzipStream, obj, _options, cancellationToken);
+                    await global::MessagePack.MessagePackSerializer.SerializeAsync(gzipStream, obj, _options, cancellationToken);
                     await gzipStream.FlushAsync(cancellationToken);
                 }
                 else
                 {
-                    await MessagePackSerializer.SerializeAsync(stream, obj, _options, cancellationToken);
+                    await global::MessagePack.MessagePackSerializer.SerializeAsync(stream, obj, _options, cancellationToken);
                 }
 
                 var msgpackBytes = stream.ToArray();
@@ -117,12 +117,12 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionLevel.Optimal, leaveOpen: true);
-                    MessagePackSerializer.Serialize(gzipStream, obj, _options);
+                    global::MessagePack.MessagePackSerializer.Serialize(gzipStream, obj, _options);
                     gzipStream.Flush();
                 }
                 else
                 {
-                    MessagePackSerializer.Serialize(stream, obj, _options);
+                    global::MessagePack.MessagePackSerializer.Serialize(stream, obj, _options);
                 }
             }
             catch (MessagePackSerializationException ex)
@@ -145,12 +145,12 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionLevel.Optimal, leaveOpen: true);
-                    await MessagePackSerializer.SerializeAsync(gzipStream, obj, _options, cancellationToken);
+                    await global::MessagePack.MessagePackSerializer.SerializeAsync(gzipStream, obj, _options, cancellationToken);
                     await gzipStream.FlushAsync(cancellationToken);
                 }
                 else
                 {
-                    await MessagePackSerializer.SerializeAsync(stream, obj, _options, cancellationToken);
+                    await global::MessagePack.MessagePackSerializer.SerializeAsync(stream, obj, _options, cancellationToken);
                 }
             }
             catch (MessagePackSerializationException ex)
@@ -175,7 +175,7 @@ namespace Conduit.Serialization
                     msgpackBytes = Decompress(data);
                 }
 
-                var result = MessagePackSerializer.Deserialize<T>(msgpackBytes, _options);
+                var result = global::MessagePack.MessagePackSerializer.Deserialize<T>(msgpackBytes, _options);
                 if (result == null)
                 {
                     throw new SerializationException(
@@ -216,11 +216,11 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionMode.Decompress);
-                    result = await MessagePackSerializer.DeserializeAsync<T>(gzipStream, _options, cancellationToken);
+                    result = await global::MessagePack.MessagePackSerializer.DeserializeAsync<T>(gzipStream, _options, cancellationToken);
                 }
                 else
                 {
-                    result = await MessagePackSerializer.DeserializeAsync<T>(stream, _options, cancellationToken);
+                    result = await global::MessagePack.MessagePackSerializer.DeserializeAsync<T>(stream, _options, cancellationToken);
                 }
 
                 if (result == null)
@@ -261,11 +261,11 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
-                    result = MessagePackSerializer.Deserialize<T>(gzipStream, _options);
+                    result = global::MessagePack.MessagePackSerializer.Deserialize<T>(gzipStream, _options);
                 }
                 else
                 {
-                    result = MessagePackSerializer.Deserialize<T>(stream, _options);
+                    result = global::MessagePack.MessagePackSerializer.Deserialize<T>(stream, _options);
                 }
 
                 if (result == null)
@@ -298,11 +298,11 @@ namespace Conduit.Serialization
                 if (_serializationOptions.UseCompression)
                 {
                     using var gzipStream = new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
-                    result = await MessagePackSerializer.DeserializeAsync<T>(gzipStream, _options, cancellationToken);
+                    result = await global::MessagePack.MessagePackSerializer.DeserializeAsync<T>(gzipStream, _options, cancellationToken);
                 }
                 else
                 {
-                    result = await MessagePackSerializer.DeserializeAsync<T>(stream, _options, cancellationToken);
+                    result = await global::MessagePack.MessagePackSerializer.DeserializeAsync<T>(stream, _options, cancellationToken);
                 }
 
                 if (result == null)
@@ -420,7 +420,7 @@ namespace Conduit.Serialization
         {
             if (data == null || data.Length == 0)
             {
-                return data;
+                return data ?? Array.Empty<byte>();
             }
 
             using var outputStream = new MemoryStream();
@@ -435,7 +435,7 @@ namespace Conduit.Serialization
         {
             if (compressedData == null || compressedData.Length == 0)
             {
-                return compressedData;
+                return compressedData ?? Array.Empty<byte>();
             }
 
             using var inputStream = new MemoryStream(compressedData);

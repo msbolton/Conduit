@@ -170,7 +170,7 @@ public class ComponentDiscoveryService : IDisposable
         }
     }
 
-    private async Task RegisterDiscoveredComponentsAsync(
+    private Task RegisterDiscoveredComponentsAsync(
         DiscoveryResult result,
         CancellationToken cancellationToken)
     {
@@ -213,6 +213,8 @@ public class ComponentDiscoveryService : IDisposable
                 _logger?.LogError(ex, "Failed to register component: {Type}", discovered.ComponentType.Name);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

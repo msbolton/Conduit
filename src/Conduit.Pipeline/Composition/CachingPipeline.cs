@@ -5,6 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using IPipelineInterceptor = Conduit.Api.IPipelineInterceptor;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -43,7 +46,8 @@ namespace Conduit.Pipeline.Composition
         {
             _ = Guard.NotNull(innerPipeline, nameof(innerPipeline));
             _ = Guard.NotNull(cacheKeyExtractor, nameof(cacheKeyExtractor));
-            Guard.Against(cacheDuration.TotalSeconds < 0, nameof(cacheDuration), "Duration cannot be negative");
+            if (cacheDuration.TotalSeconds < 0)
+                throw new ArgumentException("Duration cannot be negative", nameof(cacheDuration));
 
             _innerPipeline = innerPipeline;
             _cacheKeyExtractor = cacheKeyExtractor;
@@ -82,6 +86,15 @@ namespace Conduit.Pipeline.Composition
                 return config;
             }
         }
+
+        /// <inheritdoc />
+        public string Name => _innerPipeline.Name + " (Cached)";
+
+        /// <inheritdoc />
+        public string Id => _innerPipeline.Id + "_cached";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _innerPipeline.IsEnabled;
 
         /// <inheritdoc />
         public async Task<TOutput> ExecuteAsync(TInput input, CancellationToken cancellationToken = default)
@@ -123,7 +136,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public async Task<TOutput> ExecuteAsync(TInput input, PipelineContext context, CancellationToken cancellationToken = default)
+        public async Task<TOutput> ExecuteAsync(TInput input, Conduit.Api.PipelineContext context, CancellationToken cancellationToken = default)
         {
             var cacheKey = _cacheKeyExtractor(input);
             context.SetProperty("CachingPipeline.CacheKey", cacheKey);
@@ -213,7 +226,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         // Interface implementation methods
-        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
             return this;
@@ -224,9 +237,37 @@ namespace Conduit.Pipeline.Composition
             _innerPipeline.AddBehavior(behavior);
         }
 
-        public void AddStage(IPipelineStage<object, object> stage)
+        public bool RemoveBehavior(string behaviorId)
+        {
+            return _innerPipeline.RemoveBehavior(behaviorId);
+        }
+
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            return _innerPipeline.GetBehaviors();
+        }
+
+        public void ClearBehaviors()
+        {
+            _innerPipeline.ClearBehaviors();
+        }
+
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<TOutput, TStageOutput> stage) where TStageOutput : TOutput
+        {
+            ((Pipeline<TInput, TOutput>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage(object stage)
         {
             _innerPipeline.AddStage(stage);
+            return this;
+        }
+
+        public void AddStage(IPipelineStage<object, object> stage)
+        {
+            ((Pipeline<TInput, TOutput>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
         }
 
         public void SetErrorHandler(Func<Exception, TOutput> errorHandler)
@@ -269,6 +310,33 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not yet implemented for CachingPipeline. Apply transformations to the inner pipeline before caching.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNext> Map<TNext>(Func<TOutput, Task<TNext>> transform)
+        {
+            return new CachingPipeline<TInput, TNext>(
+                _innerPipeline.Map(transform),
+                _cacheKeyExtractor,
+                _cacheDuration);
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Where(Func<TInput, bool> predicate)
+        {
+            return new CachingPipeline<TInput, TOutput>(
+                _innerPipeline.Where(predicate),
+                _cacheKeyExtractor,
+                _cacheDuration);
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithErrorHandling(Func<Exception, TInput, Task<TOutput>> errorHandler)
+        {
+            return new CachingPipeline<TInput, TOutput>(
+                _innerPipeline.WithErrorHandling(errorHandler),
+                _cacheKeyExtractor,
+                _cacheDuration);
         }
 
         /// <inheritdoc />
@@ -363,19 +431,19 @@ namespace Conduit.Pipeline.Composition
             where TStageOutput : TOutput
         {
             return new CachingPipeline<TInput, TOutput>(
-                _innerPipeline.AddStage(stage),
+                _innerPipeline.AddStage(stage as Conduit.Api.IPipelineStage<TOutput, object> ?? throw new InvalidCastException("Unable to cast stage to Api type")),
                 _cacheKeyExtractor,
                 _cacheDuration);
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
             return _innerPipeline.GetInterceptors();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
             return _innerPipeline.GetStages();
         }

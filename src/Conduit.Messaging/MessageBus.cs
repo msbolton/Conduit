@@ -111,6 +111,62 @@ namespace Conduit.Messaging
         }
 
         /// <summary>
+        /// Sends a command without expecting a response.
+        /// </summary>
+        public async Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
+        {
+            Guard.AgainstNull(command, nameof(command));
+
+            var context = CreateMessageContext(command);
+            _metrics.RecordCommand();
+
+            try
+            {
+                // Apply flow control
+                await _flowController.ExecuteWithFlowControlAsync(async () =>
+                {
+                    // Get correlation ID
+                    var correlationId = _correlator.GetOrCreateCorrelationId(command);
+                    context.CorrelationId = correlationId;
+
+                    // Find handler
+                    var handler = _handlerRegistry.GetCommandHandler(command.GetType());
+
+                    if (handler == null)
+                    {
+                        throw new HandlerNotFoundException($"No handler found for command type {command.GetType().Name}");
+                    }
+
+                    // Execute with retry policy
+                    await ExecuteWithRetryAsync(async () =>
+                    {
+                        if (_pipeline != null)
+                        {
+                            await _pipeline.ExecuteAsync(command, cancellationToken);
+                        }
+                        else
+                        {
+                            var handleMethod = handler.GetType().GetMethod("HandleAsync");
+                            var task = (Task)handleMethod!.Invoke(handler, new object[] { command, cancellationToken })!;
+                            await task;
+                        }
+                        return Task.CompletedTask;
+                    }, context);
+
+                    // Complete correlation
+                    _correlator.CompleteCorrelation(correlationId);
+                    _metrics.RecordSuccess();
+                }, GetMessagePriority(command));
+            }
+            catch (Exception ex)
+            {
+                _metrics.RecordFailure();
+                await HandleFailedMessageAsync(command, ex, context);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Publishes an event to all subscribers.
         /// </summary>
         public async Task PublishAsync(IEvent @event, CancellationToken cancellationToken = default)
@@ -168,6 +224,19 @@ namespace Conduit.Messaging
                 _metrics.RecordFailure();
                 await HandleFailedMessageAsync(@event, ex, context);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Publishes multiple events in order.
+        /// </summary>
+        public async Task PublishAsync(IEnumerable<IEvent> events, CancellationToken cancellationToken = default)
+        {
+            Guard.AgainstNull(events, nameof(events));
+
+            foreach (var @event in events)
+            {
+                await PublishAsync(@event, cancellationToken);
             }
         }
 
@@ -230,6 +299,60 @@ namespace Conduit.Messaging
         }
 
         /// <summary>
+        /// Sends a message through the pipeline without a specific handler type.
+        /// </summary>
+        public async Task<object?> SendAsync(IMessage message, CancellationToken cancellationToken = default)
+        {
+            Guard.AgainstNull(message, nameof(message));
+
+            var context = CreateMessageContext(message);
+
+            try
+            {
+                if (_pipeline != null)
+                {
+                    return await _pipeline.ExecuteAsync(message, cancellationToken);
+                }
+                else
+                {
+                    // Handle based on message type
+                    if (message is ICommand<object> cmd)
+                    {
+                        return await SendAsync(cmd, cancellationToken);
+                    }
+                    else if (message is ICommand command)
+                    {
+                        await SendAsync(command, cancellationToken);
+                        return null;
+                    }
+                    else if (message is IEvent evt)
+                    {
+                        await PublishAsync(evt, cancellationToken);
+                        return null;
+                    }
+                    else if (message is IQuery<object> qry)
+                    {
+                        return await QueryAsync(qry, cancellationToken);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Unknown message type: {message.GetType()}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await HandleFailedMessageAsync(message, ex, context);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the message pipeline for custom processing.
+        /// </summary>
+        public IPipeline<IMessage, object?> Pipeline => _pipeline ?? throw new InvalidOperationException("No pipeline configured");
+
+        /// <summary>
         /// Subscribes to events of a specific type.
         /// </summary>
         public IDisposable Subscribe<TEvent>(
@@ -281,6 +404,66 @@ namespace Conduit.Messaging
         }
 
         /// <summary>
+        /// Registers a command handler.
+        /// </summary>
+        public ISubscription Subscribe<TCommand, TResponse>(ICommandHandler<TCommand, TResponse> handler)
+            where TCommand : ICommand<TResponse>
+        {
+            Guard.AgainstNull(handler, nameof(handler));
+            RegisterCommandHandler(handler);
+
+            var subscription = new HandlerSubscription(Guid.NewGuid().ToString(), true, () =>
+            {
+                // Handler unregistration logic would go here
+                _logger?.LogDebug("Unregistering command handler for {CommandType}", typeof(TCommand).Name);
+            });
+
+            _logger?.LogInformation("Subscribed command handler for {CommandType}", typeof(TCommand).Name);
+            return subscription;
+        }
+
+        /// <summary>
+        /// Registers an event handler.
+        /// </summary>
+        public ISubscription Subscribe<TEvent>(IEventHandler<TEvent> handler)
+            where TEvent : IEvent
+        {
+            Guard.AgainstNull(handler, nameof(handler));
+
+            // Create a subscription that adapts IEventHandler to Action<TEvent>
+            var actionHandler = new Action<TEvent>(evt => handler.HandleAsync(evt, CancellationToken.None).GetAwaiter().GetResult());
+            var disposable = Subscribe(actionHandler);
+
+            var subscription = new HandlerSubscription(Guid.NewGuid().ToString(), true, () =>
+            {
+                disposable.Dispose();
+                _logger?.LogDebug("Unregistering event handler for {EventType}", typeof(TEvent).Name);
+            });
+
+            _logger?.LogInformation("Subscribed event handler for {EventType}", typeof(TEvent).Name);
+            return subscription;
+        }
+
+        /// <summary>
+        /// Registers a query handler.
+        /// </summary>
+        public ISubscription Subscribe<TQuery, TResult>(IQueryHandler<TQuery, TResult> handler)
+            where TQuery : IQuery<TResult>
+        {
+            Guard.AgainstNull(handler, nameof(handler));
+            RegisterQueryHandler(handler);
+
+            var subscription = new HandlerSubscription(Guid.NewGuid().ToString(), true, () =>
+            {
+                // Handler unregistration logic would go here
+                _logger?.LogDebug("Unregistering query handler for {QueryType}", typeof(TQuery).Name);
+            });
+
+            _logger?.LogInformation("Subscribed query handler for {QueryType}", typeof(TQuery).Name);
+            return subscription;
+        }
+
+        /// <summary>
         /// Gets the health status of the message bus.
         /// </summary>
         public MessageBusHealth GetHealth()
@@ -310,14 +493,14 @@ namespace Conduit.Messaging
             {
                 MessageId = message.MessageId ?? Guid.NewGuid().ToString(),
                 Timestamp = DateTimeOffset.UtcNow,
-                Headers = new Dictionary<string, string>(message.Headers ?? new Dictionary<string, string>())
+                Headers = message.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? "") ?? new Dictionary<string, string>()
             };
         }
 
         private Priority GetMessagePriority(IMessage message)
         {
-            if (message.Headers?.TryGetValue("Priority", out var priorityStr) == true &&
-                Enum.TryParse<Priority>(priorityStr, out var priority))
+            if (message.Headers?.TryGetValue("Priority", out var priorityObj) == true &&
+                Enum.TryParse<Priority>(priorityObj?.ToString(), out var priority))
             {
                 return priority;
             }
@@ -395,6 +578,37 @@ namespace Conduit.Messaging
             public SubscriptionDisposable(Action disposeAction)
             {
                 _disposeAction = disposeAction;
+            }
+
+            public void Dispose()
+            {
+                _disposeAction();
+            }
+        }
+
+        private class HandlerSubscription : ISubscription
+        {
+            private readonly Action _disposeAction;
+            private bool _isActive;
+
+            public HandlerSubscription(string id, bool isActive, Action disposeAction)
+            {
+                Id = id;
+                _isActive = isActive;
+                _disposeAction = disposeAction;
+            }
+
+            public string Id { get; }
+            public bool IsActive => _isActive;
+
+            public void Pause()
+            {
+                _isActive = false;
+            }
+
+            public void Resume()
+            {
+                _isActive = true;
             }
 
             public void Dispose()

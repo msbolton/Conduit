@@ -13,7 +13,7 @@ namespace Conduit.Transports.Core
     /// </summary>
     public abstract class TransportAdapterBase : ITransport
     {
-        private readonly ILogger? _logger;
+        private readonly Microsoft.Extensions.Logging.ILogger? _logger;
         private readonly ConcurrentDictionary<string, ITransportSubscription> _subscriptions = new();
         private bool _disposed;
         protected readonly object _stateLock = new();
@@ -38,7 +38,7 @@ namespace Conduit.Transports.Core
         /// </summary>
         /// <param name="configuration">The transport configuration</param>
         /// <param name="logger">Optional logger</param>
-        protected TransportAdapterBase(TransportConfiguration configuration, ILogger? logger = null)
+        protected TransportAdapterBase(TransportConfiguration configuration, Microsoft.Extensions.Logging.ILogger? logger = null)
         {
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _logger = logger;
@@ -130,7 +130,7 @@ namespace Conduit.Transports.Core
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
 
-            _logger?.LogDebug("Sending message {MessageId} via transport '{Name}'", message.Id, Name);
+            _logger?.LogDebug("Sending message {MessageId} via transport '{Name}'", message.MessageId, Name);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -141,14 +141,14 @@ namespace Conduit.Transports.Core
                 stopwatch.Stop();
                 UpdateSendStatistics(true, stopwatch.ElapsedMilliseconds);
 
-                _logger?.LogDebug("Message {MessageId} sent successfully in {ElapsedMs}ms", message.Id, stopwatch.ElapsedMilliseconds);
+                _logger?.LogDebug("Message {MessageId} sent successfully in {ElapsedMs}ms", message.MessageId, stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
                 UpdateSendStatistics(false, stopwatch.ElapsedMilliseconds);
 
-                _logger?.LogError(ex, "Failed to send message {MessageId} via transport '{Name}'", message.Id, Name);
+                _logger?.LogError(ex, "Failed to send message {MessageId} via transport '{Name}'", message.MessageId, Name);
                 throw new TransportException($"Failed to send message via transport '{Name}'", ex);
             }
         }
@@ -164,7 +164,7 @@ namespace Conduit.Transports.Core
             if (string.IsNullOrWhiteSpace(destination))
                 throw new ArgumentNullException(nameof(destination));
 
-            _logger?.LogDebug("Sending message {MessageId} to '{Destination}' via transport '{Name}'", message.Id, destination, Name);
+            _logger?.LogDebug("Sending message {MessageId} to '{Destination}' via transport '{Name}'", message.MessageId, destination, Name);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -175,14 +175,14 @@ namespace Conduit.Transports.Core
                 stopwatch.Stop();
                 UpdateSendStatistics(true, stopwatch.ElapsedMilliseconds);
 
-                _logger?.LogDebug("Message {MessageId} sent to '{Destination}' successfully in {ElapsedMs}ms", message.Id, destination, stopwatch.ElapsedMilliseconds);
+                _logger?.LogDebug("Message {MessageId} sent to '{Destination}' successfully in {ElapsedMs}ms", message.MessageId, destination, stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
                 UpdateSendStatistics(false, stopwatch.ElapsedMilliseconds);
 
-                _logger?.LogError(ex, "Failed to send message {MessageId} to '{Destination}' via transport '{Name}'", message.Id, destination, Name);
+                _logger?.LogError(ex, "Failed to send message {MessageId} to '{Destination}' via transport '{Name}'", message.MessageId, destination, Name);
                 throw new TransportException($"Failed to send message to '{destination}' via transport '{Name}'", ex);
             }
         }

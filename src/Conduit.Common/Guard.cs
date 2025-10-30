@@ -214,4 +214,53 @@ public static class Guard
         }
         return value;
     }
+
+    // Legacy method names for backward compatibility
+
+    /// <summary>
+    /// Throws if the value is null (legacy method name).
+    /// </summary>
+    [DebuggerStepThrough]
+    public static void AgainstNull<T>(
+        [NotNull] T? value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null) where T : class
+    {
+        NotNull(value, paramName);
+    }
+
+    /// <summary>
+    /// Throws if the value is null or empty (legacy method name).
+    /// </summary>
+    [DebuggerStepThrough]
+    public static void AgainstNullOrEmpty(
+        [NotNull] string? value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    {
+        NotNullOrEmpty(value, paramName);
+    }
+
+    /// <summary>
+    /// Throws if the value is negative (legacy method name).
+    /// </summary>
+    [DebuggerStepThrough]
+    public static void AgainstNegative<T>(
+        T value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null) where T : IComparable<T>
+    {
+        NotNegative(value, paramName);
+    }
+
+    /// <summary>
+    /// Throws if the value is negative or zero (legacy method name).
+    /// </summary>
+    [DebuggerStepThrough]
+    public static void AgainstNegativeOrZero<T>(
+        T value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null) where T : IComparable<T>
+    {
+        if (Comparer<T>.Default.Compare(value, default!) <= 0)
+        {
+            throw new ArgumentOutOfRangeException(paramName, value, "Value cannot be negative or zero.");
+        }
+    }
 }

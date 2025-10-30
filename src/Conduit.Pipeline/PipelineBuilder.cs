@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Conduit.Api;
 using Conduit.Common;
-using Conduit.Core.Behaviors;
+using Conduit.Pipeline.Behaviors;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using RetryPolicy = Conduit.Api.RetryPolicy;
 
 namespace Conduit.Pipeline
 {
@@ -18,7 +22,7 @@ namespace Conduit.Pipeline
         private readonly List<IPipelineInterceptor> _interceptors;
         private readonly List<BehaviorContribution> _behaviors;
         private PipelineConfiguration _configuration;
-        private PipelineMetadata _metadata;
+        private PipelineMetadataBuilder _metadataBuilder;
         private Func<Exception, TOutput>? _errorHandler;
         private Action<TOutput>? _completeHandler;
         private Func<TInput, string>? _cacheKeyExtractor;
@@ -32,13 +36,10 @@ namespace Conduit.Pipeline
             _stages = new List<IPipelineStage<object, object>>();
             _interceptors = new List<IPipelineInterceptor>();
             _behaviors = new List<BehaviorContribution>();
-            _configuration = PipelineConfiguration.Default();
-            _metadata = new PipelineMetadata
-            {
-                PipelineId = Guid.NewGuid().ToString(),
-                Name = "Pipeline",
-                Type = PipelineType.Sequential
-            };
+            _configuration = PipelineConfiguration.Default;
+            _metadataBuilder = PipelineMetadata.Builder()
+                .WithName("Pipeline")
+                .WithType(PipelineType.Sequential);
         }
 
         /// <summary>
@@ -48,8 +49,8 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> WithName(string name)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            _metadata.Name = name;
+            Guard.NotNullOrEmpty(name, nameof(name));
+            _metadataBuilder.WithName(name);
             return this;
         }
 
@@ -60,8 +61,8 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> WithDescription(string description)
         {
-            Guard.AgainstNullOrEmpty(description, nameof(description));
-            _metadata.Description = description;
+            Guard.NotNullOrEmpty(description, nameof(description));
+            _metadataBuilder.WithDescription(description);
             return this;
         }
 
@@ -72,7 +73,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> WithType(PipelineType type)
         {
-            _metadata.Type = type;
+            _metadataBuilder.WithType(type);
             return this;
         }
 
@@ -85,12 +86,12 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> AddStage<TStageIn, TStageOut>(IPipelineStage<TStageIn, TStageOut> stage)
         {
-            Guard.AgainstNull(stage, nameof(stage));
+            Guard.NotNull(stage, nameof(stage));
 
             // Cast to object types for internal storage - type safety is ensured at runtime
             var adaptedStage = new StageAdapter<TStageIn, TStageOut>(stage);
             _stages.Add(adaptedStage);
-            _metadata.Stages.Add(stage.Name);
+            _metadataBuilder.AddStage(stage.Name);
 
             return this;
         }
@@ -107,8 +108,8 @@ namespace Conduit.Pipeline
             string name,
             Func<TStageIn, Task<TStageOut>> processor)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(processor, nameof(processor));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(processor, nameof(processor));
 
             var stage = new FunctionalStage<TStageIn, TStageOut>(name, processor);
             return AddStage(stage);
@@ -126,10 +127,10 @@ namespace Conduit.Pipeline
             string name,
             Func<TStageIn, TStageOut> processor)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(processor, nameof(processor));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(processor, nameof(processor));
 
-            return AddStage(name, input => Task.FromResult(processor(input)));
+            return AddStage<TStageIn, TStageOut>(name, input => Task.FromResult(processor(input)));
         }
 
         /// <summary>
@@ -139,7 +140,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
         {
-            Guard.AgainstNull(interceptor, nameof(interceptor));
+            Guard.NotNull(interceptor, nameof(interceptor));
             _interceptors.Add(interceptor);
             return this;
         }
@@ -151,7 +152,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> AddBehavior(BehaviorContribution behavior)
         {
-            Guard.AgainstNull(behavior, nameof(behavior));
+            Guard.NotNull(behavior, nameof(behavior));
             _behaviors.Add(behavior);
             return this;
         }
@@ -167,11 +168,11 @@ namespace Conduit.Pipeline
         public PipelineBuilder<TInput, TOutput> AddBehavior(
             string name,
             IPipelineBehavior behavior,
-            BehaviorPhase phase = BehaviorPhase.Processing,
+            Conduit.Pipeline.Behaviors.BehaviorPhase phase = Conduit.Pipeline.Behaviors.BehaviorPhase.Processing,
             int priority = 100)
         {
-            Guard.AgainstNullOrEmpty(name, nameof(name));
-            Guard.AgainstNull(behavior, nameof(behavior));
+            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNull(behavior, nameof(behavior));
 
             var contribution = new BehaviorContribution
             {
@@ -180,7 +181,7 @@ namespace Conduit.Pipeline
                 Behavior = behavior,
                 Phase = phase,
                 Priority = priority,
-                Enabled = true
+                IsEnabled = true
             };
 
             return AddBehavior(contribution);
@@ -193,7 +194,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> OnError(Func<Exception, TOutput> errorHandler)
         {
-            Guard.AgainstNull(errorHandler, nameof(errorHandler));
+            Guard.NotNull(errorHandler, nameof(errorHandler));
             _errorHandler = errorHandler;
             return this;
         }
@@ -205,7 +206,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> OnComplete(Action<TOutput> completeHandler)
         {
-            Guard.AgainstNull(completeHandler, nameof(completeHandler));
+            Guard.NotNull(completeHandler, nameof(completeHandler));
             _completeHandler = completeHandler;
             return this;
         }
@@ -217,7 +218,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> Configure(PipelineConfiguration configuration)
         {
-            Guard.AgainstNull(configuration, nameof(configuration));
+            Guard.NotNull(configuration, nameof(configuration));
             _configuration = configuration;
             return this;
         }
@@ -229,7 +230,7 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> Configure(Action<PipelineConfiguration> configureAction)
         {
-            Guard.AgainstNull(configureAction, nameof(configureAction));
+            Guard.NotNull(configureAction, nameof(configureAction));
             configureAction(_configuration);
             return this;
         }
@@ -242,8 +243,9 @@ namespace Conduit.Pipeline
         /// <returns>The builder for method chaining</returns>
         public PipelineBuilder<TInput, TOutput> WithCache(Func<TInput, string> cacheKeyExtractor, TimeSpan duration)
         {
-            Guard.AgainstNull(cacheKeyExtractor, nameof(cacheKeyExtractor));
-            Guard.AgainstNegative(duration.TotalSeconds, nameof(duration));
+            Guard.NotNull(cacheKeyExtractor, nameof(cacheKeyExtractor));
+            if (duration.TotalSeconds < 0)
+                throw new ArgumentException("Duration cannot be negative", nameof(duration));
 
             _cacheKeyExtractor = cacheKeyExtractor;
             _cacheDuration = duration;
@@ -261,7 +263,7 @@ namespace Conduit.Pipeline
         {
             _configuration.AsyncExecution = true;
             _configuration.MaxConcurrency = maxConcurrency > 0 ? maxConcurrency : Environment.ProcessorCount;
-            _metadata.Type = PipelineType.Parallel;
+            _metadataBuilder.WithType(PipelineType.Parallel);
 
             return this;
         }
@@ -279,7 +281,7 @@ namespace Conduit.Pipeline
             }
 
             // Create the pipeline instance
-            var pipeline = new Pipeline<TInput, TOutput>(_metadata, _configuration);
+            var pipeline = new Pipeline<TInput, TOutput>(_metadataBuilder.Build(), _configuration);
 
             // Add stages
             foreach (var stage in _stages)
@@ -290,7 +292,7 @@ namespace Conduit.Pipeline
             // Add interceptors
             foreach (var interceptor in _interceptors)
             {
-                pipeline.AddInterceptor(interceptor);
+                pipeline.AddInterceptor(interceptor as Conduit.Api.IPipelineInterceptor ?? throw new InvalidCastException("Unable to cast interceptor to Api type"));
             }
 
             // Add behaviors
@@ -345,12 +347,12 @@ namespace Conduit.Pipeline
 
             public string Name => _innerStage.Name;
 
-            public async Task<object?> ProcessAsync(object? input, PipelineContext context, CancellationToken cancellationToken)
+            public async Task<object> ProcessAsync(object input, PipelineContext context)
             {
                 if (input is TStageIn typedInput)
                 {
-                    var result = await _innerStage.ProcessAsync(typedInput, context, cancellationToken);
-                    return result;
+                    var result = await _innerStage.ProcessAsync(typedInput, context);
+                    return result!;
                 }
 
                 throw new InvalidOperationException($"Stage {Name} expected input of type {typeof(TStageIn)} but received {input?.GetType()}");
@@ -372,9 +374,10 @@ namespace Conduit.Pipeline
                 _processor = processor;
             }
 
-            public Task<TStageOut?> ProcessAsync(TStageIn input, PipelineContext context, CancellationToken cancellationToken)
+            public async Task<TStageOut> ProcessAsync(TStageIn input, PipelineContext context)
             {
-                return _processor(input)!;
+                var result = await _processor(input);
+                return result;
             }
         }
     }

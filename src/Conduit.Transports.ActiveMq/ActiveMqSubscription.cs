@@ -20,6 +20,7 @@ namespace Conduit.Transports.ActiveMq
 
         private volatile bool _isPaused;
         private volatile bool _isDisposed;
+        private long _messagesReceived;
 
         /// <summary>
         /// Initializes a new instance of the ActiveMqSubscription class.
@@ -59,6 +60,21 @@ namespace Conduit.Transports.ActiveMq
         public string Id { get; }
 
         /// <summary>
+        /// Gets the subscription identifier.
+        /// </summary>
+        public string SubscriptionId => Id;
+
+        /// <summary>
+        /// Gets whether this subscription is active.
+        /// </summary>
+        public bool IsActive => !_isDisposed && !_isPaused;
+
+        /// <summary>
+        /// Gets the number of messages received through this subscription.
+        /// </summary>
+        public long MessagesReceived => _messagesReceived;
+
+        /// <summary>
         /// Gets the source destination.
         /// </summary>
         public string Source { get; }
@@ -71,7 +87,7 @@ namespace Conduit.Transports.ActiveMq
         /// <summary>
         /// Pauses message delivery for this subscription.
         /// </summary>
-        public Task PauseAsync(CancellationToken cancellationToken = default)
+        public Task PauseAsync()
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(nameof(ActiveMqSubscription));
@@ -84,7 +100,7 @@ namespace Conduit.Transports.ActiveMq
         /// <summary>
         /// Resumes message delivery for this subscription.
         /// </summary>
-        public Task ResumeAsync(CancellationToken cancellationToken = default)
+        public Task ResumeAsync()
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(nameof(ActiveMqSubscription));
@@ -132,6 +148,7 @@ namespace Conduit.Transports.ActiveMq
                     try
                     {
                         await _handler(transportMessage);
+                        Interlocked.Increment(ref _messagesReceived);
 
                         // Acknowledge if using client acknowledgement
                         if (nmsMessage.NMSDeliveryMode == MsgDeliveryMode.Persistent)

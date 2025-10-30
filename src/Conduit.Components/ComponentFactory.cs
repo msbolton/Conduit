@@ -14,13 +14,13 @@ namespace Conduit.Components
     /// </summary>
     public class ComponentFactory
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly System.IServiceProvider _serviceProvider;
         private readonly ILogger<ComponentFactory> _logger;
         private readonly Dictionary<string, Type> _componentTypes;
         private readonly Dictionary<Type, object> _singletonInstances;
 
         public ComponentFactory(
-            IServiceProvider serviceProvider,
+            System.IServiceProvider serviceProvider,
             ILogger<ComponentFactory>? logger = null)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
@@ -44,7 +44,16 @@ namespace Conduit.Components
                     nameof(componentType));
             }
 
-            var manifest = ComponentManifest.FromType(componentType);
+            var manifest = new ComponentManifest
+            {
+                Id = componentType.FullName ?? componentType.Name,
+                Name = componentType.Name,
+                Version = "1.0.0",
+                Description = componentType.GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+                    .OfType<System.ComponentModel.DescriptionAttribute>()
+                    .FirstOrDefault()?.Description ?? "",
+                Scope = ComponentScope.Transient
+            };
             _componentTypes[manifest.Id] = componentType;
 
             _logger.LogInformation("Registered component type {ComponentId}: {ComponentType}",
@@ -84,8 +93,17 @@ namespace Conduit.Components
             Guard.AgainstNull(componentType, nameof(componentType));
 
             // Check if component should be singleton
-            var manifest = ComponentManifest.FromType(componentType);
-            if (manifest.Scope == ComponentScope.Singleton)
+            var manifest = new ComponentManifest
+            {
+                Id = componentType.FullName ?? componentType.Name,
+                Name = componentType.Name,
+                Version = "1.0.0",
+                Description = componentType.GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+                    .OfType<System.ComponentModel.DescriptionAttribute>()
+                    .FirstOrDefault()?.Description ?? "",
+                Scope = ComponentScope.Transient
+            };
+            if (manifest.Scope is ComponentScope manifestScope && manifestScope == ComponentScope.Singleton)
             {
                 if (_singletonInstances.TryGetValue(componentType, out var existing))
                 {
@@ -95,7 +113,7 @@ namespace Conduit.Components
 
             var instance = CreateComponentInstance(componentType);
 
-            if (manifest.Scope == ComponentScope.Singleton)
+            if (manifest.Scope is ComponentScope singletonScope && singletonScope == ComponentScope.Singleton)
             {
                 _singletonInstances[componentType] = instance;
             }

@@ -109,4 +109,55 @@ public interface IPluggableComponent
     /// Components can specify their isolation level for security and stability.
     /// </summary>
     IsolationRequirements IsolationRequirements { get; }
+
+    /// <summary>
+    /// Gets the current state of this component.
+    /// </summary>
+    /// <returns>The current component state</returns>
+    ComponentState GetState();
+
+    /// <summary>
+    /// Starts the component asynchronously.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the start operation</returns>
+    Task StartAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops the component asynchronously.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the stop operation</returns>
+    Task StopAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Initializes the component with configuration.
+    /// </summary>
+    /// <param name="configuration">Component configuration</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the initialization</returns>
+    Task InitializeAsync(ComponentConfiguration configuration, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Detaches the component from its context.
+    /// </summary>
+    void OnDetach();
+
+    /// <summary>
+    /// Disposes the component asynchronously.
+    /// </summary>
+    /// <returns>Task representing the disposal</returns>
+    Task DisposeAsync();
+
+    /// <summary>
+    /// Checks the health of the component.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Component health information</returns>
+    Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Disposes the component synchronously.
+    /// </summary>
+    void Dispose();
 }

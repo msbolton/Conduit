@@ -54,7 +54,7 @@ namespace Conduit.Transports.Core
             // Convert to transport message
             var transportMessage = new TransportMessage
             {
-                MessageId = message.Id,
+                MessageId = message.MessageId,
                 CorrelationId = message.CorrelationId,
                 MessageType = message.GetType().FullName,
                 Destination = destination,

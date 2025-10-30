@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Conduit.Api;
 
 namespace Conduit.Pipeline.Behaviors;
 
 /// <summary>
 /// Represents a behavior contribution to the pipeline with metadata and placement rules.
 /// </summary>
-public class BehaviorContribution
+public class BehaviorContribution : IBehaviorContribution
 {
     /// <summary>
     /// Gets the unique identifier for this behavior.
@@ -23,6 +24,9 @@ public class BehaviorContribution
     /// Gets the description of what this behavior does.
     /// </summary>
     public string? Description { get; init; }
+
+    /// <inheritdoc />
+    string IBehaviorContribution.Description => Description ?? string.Empty;
 
     /// <summary>
     /// Gets the behavior implementation.
@@ -63,6 +67,20 @@ public class BehaviorContribution
     /// Gets a dynamic enablement function.
     /// </summary>
     public Func<bool>? EnabledPredicate { get; init; }
+
+    // IBehaviorContribution interface implementations
+
+    /// <inheritdoc />
+    IReadOnlySet<string> IBehaviorContribution.Tags => Tags.ToHashSet();
+
+    /// <inheritdoc />
+    BehaviorDelegate? IBehaviorContribution.Behavior => null; // This would need adapter logic
+
+    /// <inheritdoc />
+    Conduit.Api.BehaviorPlacement? IBehaviorContribution.Placement => null; // Convert from Pipeline BehaviorPlacement to API BehaviorPlacement
+
+    /// <inheritdoc />
+    Conduit.Api.BehaviorPhase IBehaviorContribution.Phase => (Conduit.Api.BehaviorPhase)(int)Phase;
 
     /// <summary>
     /// Determines if this behavior is currently enabled.
@@ -290,26 +308,6 @@ public class BehaviorContributionBuilder
     }
 }
 
-/// <summary>
-/// Represents the execution phase of a behavior.
-/// </summary>
-public enum BehaviorPhase
-{
-    /// <summary>
-    /// Pre-processing phase (runs before main processing).
-    /// </summary>
-    PreProcessing = 0,
-
-    /// <summary>
-    /// Main processing phase.
-    /// </summary>
-    Processing = 1,
-
-    /// <summary>
-    /// Post-processing phase (runs after main processing).
-    /// </summary>
-    PostProcessing = 2
-}
 
 /// <summary>
 /// Extension methods for managing behavior contributions.

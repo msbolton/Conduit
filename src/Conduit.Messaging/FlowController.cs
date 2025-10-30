@@ -139,7 +139,7 @@ namespace Conduit.Messaging
             };
 
             // Try to enqueue the task
-            if (!await _taskChannel.Writer.TryWriteAsync(task, cancellationToken))
+            if (!_taskChannel.Writer.TryWrite(task))
             {
                 // Apply backpressure
                 await ApplyBackpressureAsync(task, cancellationToken);

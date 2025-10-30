@@ -31,7 +31,7 @@ namespace Conduit.Core.Behaviors
         /// <param name="next">The next behavior in the chain</param>
         public BehaviorChain(Func<PipelineContext, Task<object?>> next)
         {
-            Guard.AgainstNull(next, nameof(next));
+            Guard.NotNull(next, nameof(next));
             _next = next;
         }
 
@@ -40,7 +40,7 @@ namespace Conduit.Core.Behaviors
         /// </summary>
         public Task<object?> ProceedAsync(PipelineContext context)
         {
-            Guard.AgainstNull(context, nameof(context));
+            Guard.NotNull(context, nameof(context));
 
             if (context.IsCancelled)
             {
@@ -67,7 +67,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>A terminal behavior chain that fails</returns>
         public static IBehaviorChain TerminalError(Exception error)
         {
-            Guard.AgainstNull(error, nameof(error));
+            Guard.NotNull(error, nameof(error));
             return new BehaviorChain(_ => Task.FromException<object?>(error));
         }
 
@@ -87,7 +87,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>A chained behavior</returns>
         public static IBehaviorChain Create(params IPipelineBehavior[] behaviors)
         {
-            Guard.AgainstNull(behaviors, nameof(behaviors));
+            Guard.NotNull(behaviors, nameof(behaviors));
 
             if (behaviors.Length == 0)
             {
@@ -124,8 +124,8 @@ namespace Conduit.Core.Behaviors
         /// <returns>A combined behavior chain</returns>
         public static IBehaviorChain Then(this IBehaviorChain first, IBehaviorChain next)
         {
-            Guard.AgainstNull(first, nameof(first));
-            Guard.AgainstNull(next, nameof(next));
+            Guard.NotNull(first, nameof(first));
+            Guard.NotNull(next, nameof(next));
 
             return new BehaviorChain(async context =>
             {
@@ -148,8 +148,8 @@ namespace Conduit.Core.Behaviors
             this IBehaviorChain chain,
             Func<Exception, object?> errorHandler)
         {
-            Guard.AgainstNull(chain, nameof(chain));
-            Guard.AgainstNull(errorHandler, nameof(errorHandler));
+            Guard.NotNull(chain, nameof(chain));
+            Guard.NotNull(errorHandler, nameof(errorHandler));
 
             return new BehaviorChain(async context =>
             {
@@ -172,7 +172,7 @@ namespace Conduit.Core.Behaviors
         /// <returns>A behavior chain with timeout</returns>
         public static IBehaviorChain WithTimeout(this IBehaviorChain chain, TimeSpan timeout)
         {
-            Guard.AgainstNull(chain, nameof(chain));
+            Guard.NotNull(chain, nameof(chain));
 
             return new BehaviorChain(async context =>
             {

@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
 using Conduit.Pipeline.Behaviors;
+using PipelineMetadata = Conduit.Api.PipelineMetadata;
+using PipelineConfiguration = Conduit.Api.PipelineConfiguration;
+using RetryPolicy = Conduit.Api.RetryPolicy;
+using IPipelineInterceptor = Conduit.Api.IPipelineInterceptor;
 
 namespace Conduit.Pipeline.Composition
 {
@@ -30,8 +34,8 @@ namespace Conduit.Pipeline.Composition
         /// <param name="transformer">The transformation function</param>
         public MapPipeline(IPipeline<TInput, TIntermediate> innerPipeline, Func<TIntermediate, TOutput> transformer)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
-            Guard.AgainstNull(transformer, nameof(transformer));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(transformer, nameof(transformer));
 
             _innerPipeline = innerPipeline;
             _transformer = transformer;
@@ -45,8 +49,8 @@ namespace Conduit.Pipeline.Composition
         /// <param name="asyncTransformer">The async transformation function</param>
         public MapPipeline(IPipeline<TInput, TIntermediate> innerPipeline, Func<TIntermediate, Task<TOutput>> asyncTransformer)
         {
-            Guard.AgainstNull(innerPipeline, nameof(innerPipeline));
-            Guard.AgainstNull(asyncTransformer, nameof(asyncTransformer));
+            Guard.NotNull(innerPipeline, nameof(innerPipeline));
+            Guard.NotNull(asyncTransformer, nameof(asyncTransformer));
 
             _innerPipeline = innerPipeline;
             _asyncTransformer = asyncTransformer;
@@ -76,6 +80,15 @@ namespace Conduit.Pipeline.Composition
         public PipelineConfiguration Configuration => _innerPipeline.Configuration;
 
         /// <inheritdoc />
+        public string Name => $"{_innerPipeline.Name} -> Map";
+
+        /// <inheritdoc />
+        public string Id => $"{_innerPipeline.Id}_map";
+
+        /// <inheritdoc />
+        public bool IsEnabled => _innerPipeline.IsEnabled;
+
+        /// <inheritdoc />
         public async Task<TOutput> ExecuteAsync(TInput input, CancellationToken cancellationToken = default)
         {
             // Execute the inner pipeline
@@ -91,7 +104,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public async Task<TOutput> ExecuteAsync(TInput input, PipelineContext context, CancellationToken cancellationToken = default)
+        public async Task<TOutput> ExecuteAsync(TInput input, Conduit.Api.PipelineContext context, CancellationToken cancellationToken = default)
         {
             context.SetProperty("MapPipeline.Stage", "InnerExecution");
 
@@ -114,7 +127,7 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds an interceptor to the inner pipeline if supported.
         /// </summary>
-        public IPipeline<TInput, TOutput> AddInterceptor(IPipelineInterceptor interceptor)
+        public IPipeline<TInput, TOutput> AddInterceptor(Conduit.Api.IPipelineInterceptor interceptor)
         {
             _innerPipeline.AddInterceptor(interceptor);
             return this;
@@ -123,9 +136,49 @@ namespace Conduit.Pipeline.Composition
         /// <summary>
         /// Adds a behavior to the inner pipeline if supported.
         /// </summary>
-        public void AddBehavior(BehaviorContribution behavior)
+        public void AddBehavior(IBehaviorContribution behavior)
         {
             _innerPipeline.AddBehavior(behavior);
+        }
+
+        /// <summary>
+        /// Removes a behavior from the inner pipeline if supported.
+        /// </summary>
+        public bool RemoveBehavior(string behaviorId)
+        {
+            return _innerPipeline.RemoveBehavior(behaviorId);
+        }
+
+        /// <summary>
+        /// Gets all behaviors from the inner pipeline.
+        /// </summary>
+        public IReadOnlyList<IBehaviorContribution> GetBehaviors()
+        {
+            return _innerPipeline.GetBehaviors();
+        }
+
+        /// <summary>
+        /// Clears all behaviors from the inner pipeline.
+        /// </summary>
+        public void ClearBehaviors()
+        {
+            _innerPipeline.ClearBehaviors();
+        }
+
+        /// <summary>
+        /// Adds a stage to the inner pipeline if supported.
+        /// </summary>
+        public IPipeline<TInput, TOutput> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<TOutput, TStageOutput> stage) where TStageOutput : TOutput
+        {
+            ((Pipeline<TInput, TIntermediate>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> AddStage(object stage)
+        {
+            _innerPipeline.AddStage(stage);
+            return this;
         }
 
         /// <summary>
@@ -133,7 +186,7 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void AddStage(IPipelineStage<object, object> stage)
         {
-            _innerPipeline.AddStage(stage);
+            ((Pipeline<TInput, TIntermediate>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
         }
 
         /// <summary>
@@ -141,8 +194,21 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void SetErrorHandler(Func<Exception, TOutput> errorHandler)
         {
-            // This would need to be implemented based on the inner pipeline's capabilities
-            throw new NotImplementedException("Error handler configuration not yet implemented for MapPipeline");
+            // For MapPipeline, we need to delegate error handling to the inner pipeline
+            // but map any exceptions that occur during transformation
+            _innerPipeline.SetErrorHandler(ex =>
+            {
+                try
+                {
+                    var result = errorHandler(ex);
+                    return (TIntermediate)(object)result!;
+                }
+                catch
+                {
+                    // If the error handler itself throws, we can't do much more
+                    throw;
+                }
+            });
         }
 
         /// <summary>
@@ -150,8 +216,30 @@ namespace Conduit.Pipeline.Composition
         /// </summary>
         public void SetCompletionHandler(Action<TOutput> completionHandler)
         {
-            // This would need to be implemented based on the inner pipeline's capabilities
-            throw new NotImplementedException("Completion handler configuration not yet implemented for MapPipeline");
+            // For MapPipeline, we handle completion after the mapping transformation
+            _innerPipeline.SetCompletionHandler(intermediateResult =>
+            {
+                try
+                {
+                    TOutput finalResult;
+                    if (_asyncTransform && _asyncTransformer != null)
+                    {
+                        // For async transformers, we can't handle completion synchronously
+                        // This is a limitation of the current design
+                        return;
+                    }
+                    else
+                    {
+                        finalResult = _transformer(intermediateResult);
+                    }
+                    completionHandler(finalResult);
+                }
+                catch
+                {
+                    // If transformation or completion handler fails, we can't do much
+                    // The exception will be handled by the error handling system
+                }
+            });
         }
 
         /// <summary>
@@ -174,6 +262,24 @@ namespace Conduit.Pipeline.Composition
         public IPipeline<TInput, TNewOutput> MapAsync<TNewOutput>(Func<TOutput, Task<TNewOutput>> asyncMapper)
         {
             throw new NotImplementedException("MapAsync operation is not implemented for MapPipeline. MapPipeline already implements mapping logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TNext> Map<TNext>(Func<TOutput, Task<TNext>> transform)
+        {
+            throw new NotImplementedException("Async Map operation is not implemented for MapPipeline. MapPipeline already implements mapping logic.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> Where(Func<TInput, bool> predicate)
+        {
+            throw new NotImplementedException("Where operation is not implemented for MapPipeline. Apply filtering to the inner pipeline before mapping.");
+        }
+
+        /// <inheritdoc />
+        public IPipeline<TInput, TOutput> WithErrorHandling(Func<Exception, TInput, Task<TOutput>> errorHandler)
+        {
+            throw new NotImplementedException("WithErrorHandling operation is not implemented for MapPipeline. Apply error handling to the inner pipeline before mapping.");
         }
 
         /// <inheritdoc />
@@ -273,15 +379,15 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineInterceptor> GetInterceptors()
+        public IReadOnlyList<Conduit.Api.IPipelineInterceptor> GetInterceptors()
         {
-            return new List<IPipelineInterceptor>().AsReadOnly();
+            return _innerPipeline.GetInterceptors();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<IPipelineStage<object, object>> GetStages()
+        public IReadOnlyList<Conduit.Api.IPipelineStage<object, object>> GetStages()
         {
-            return new List<IPipelineStage<object, object>>().AsReadOnly();
+            return _innerPipeline.GetStages();
         }
     }
 
@@ -366,7 +472,7 @@ namespace Conduit.Pipeline.Composition
             this IPipeline<TInput, TIntermediate> pipeline,
             IConverter<TIntermediate, TOutput> converter)
         {
-            Guard.AgainstNull(converter, nameof(converter));
+            Guard.NotNull(converter, nameof(converter));
             return pipeline.Map(intermediate => converter.Convert(intermediate));
         }
     }

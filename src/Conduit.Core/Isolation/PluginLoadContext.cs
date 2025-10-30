@@ -61,17 +61,17 @@ namespace Conduit.Core
             ILogger<PluginLoadContext>? logger = null)
             : base(pluginName, isCollectible: true)
         {
-            Guard.AgainstNullOrEmpty(pluginName, nameof(pluginName));
-            Guard.AgainstNullOrEmpty(assemblyPath, nameof(assemblyPath));
-            Guard.AgainstNull(isolationRequirements, nameof(isolationRequirements));
-            Guard.AgainstNull(parentContext, nameof(parentContext));
+            Guard.NotNullOrEmpty(pluginName, nameof(pluginName));
+            Guard.NotNullOrEmpty(assemblyPath, nameof(assemblyPath));
+            Guard.NotNull(isolationRequirements, nameof(isolationRequirements));
+            Guard.NotNull(parentContext, nameof(parentContext));
 
             _pluginName = pluginName;
             _assemblyPath = Path.GetFullPath(assemblyPath);
             _isolationRequirements = isolationRequirements;
             _parentContext = parentContext;
             _logger = logger;
-            _isParentLast = isolationRequirements.UseParentLastLoading;
+            _isParentLast = isolationRequirements.Level == IsolationLevel.Standard;
 
             // Create resolver for the plugin directory
             _resolver = new AssemblyDependencyResolver(_assemblyPath);
@@ -111,14 +111,11 @@ namespace Conduit.Core
             ILogger<PluginLoadContext>? logger = null)
         {
             // Apply default security settings if not specified
-            if (isolationRequirements.IsolationLevel == IsolationLevel.None)
+            if (isolationRequirements.Level == IsolationLevel.None)
             {
                 isolationRequirements = new IsolationRequirements
                 {
-                    IsolationLevel = IsolationLevel.Plugin,
-                    UseParentLastLoading = true,
-                    AllowedPackages = new List<string> { "System", "Microsoft", "Conduit.Api" },
-                    RestrictedClasses = new List<string>()
+                    Level = IsolationLevel.Standard
                 };
             }
 
@@ -223,32 +220,24 @@ namespace Conduit.Core
             }
 
             // If no restrictions, everything is allowed
-            if (_isolationRequirements.IsolationLevel == IsolationLevel.None)
+            if (_isolationRequirements.Level == IsolationLevel.None)
             {
                 return true;
             }
 
-            // Check restricted classes/assemblies
-            if (_isolationRequirements.RestrictedClasses != null &&
-                _isolationRequirements.RestrictedClasses.Any(restricted =>
-                    assemblyName.Contains(restricted, StringComparison.OrdinalIgnoreCase)))
+            // Check blocked assemblies
+            if (_isolationRequirements.BlockedAssemblies.Contains(assemblyName))
             {
                 return false;
             }
 
-            // Check allowed packages
-            if (_isolationRequirements.AllowedPackages != null &&
-                _isolationRequirements.AllowedPackages.Count > 0)
+            // Check allowed assemblies (if specified)
+            if (_isolationRequirements.AllowedAssemblies.Count > 0 &&
+                !_isolationRequirements.AllowedAssemblies.Contains(assemblyName))
             {
-                bool isAllowed = _isolationRequirements.AllowedPackages.Any(allowed =>
-                    assemblyName.StartsWith(allowed, StringComparison.OrdinalIgnoreCase));
-
-                if (!isAllowed)
-                {
-                    _logger?.LogTrace("Assembly {Assembly} not in allowed packages for plugin {Plugin}",
-                        assemblyName, _pluginName);
-                    return false;
-                }
+                _logger?.LogTrace("Assembly {Assembly} not in allowed assemblies for plugin {Plugin}",
+                    assemblyName, _pluginName);
+                return false;
             }
 
             return true;
@@ -259,7 +248,7 @@ namespace Conduit.Core
         /// </summary>
         public Type? LoadType(string typeName)
         {
-            Guard.AgainstNullOrEmpty(typeName, nameof(typeName));
+            Guard.NotNullOrEmpty(typeName, nameof(typeName));
 
             try
             {
@@ -324,7 +313,7 @@ namespace Conduit.Core
                     AssemblyPath = _assemblyPath,
                     Version = assemblyName.Version?.ToString() ?? "0.0.0",
                     AssemblyName = assemblyName.Name ?? _pluginName,
-                    IsolationLevel = _isolationRequirements.IsolationLevel,
+                    IsolationLevel = _isolationRequirements.Level,
                     IsParentLast = _isParentLast
                 };
             }
@@ -337,7 +326,7 @@ namespace Conduit.Core
                     AssemblyPath = _assemblyPath,
                     Version = "0.0.0",
                     AssemblyName = _pluginName,
-                    IsolationLevel = _isolationRequirements.IsolationLevel,
+                    IsolationLevel = _isolationRequirements.Level,
                     IsParentLast = _isParentLast
                 };
             }

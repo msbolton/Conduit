@@ -52,7 +52,7 @@ namespace Conduit.Core
         /// <returns>A subscription that can be disposed to unsubscribe</returns>
         public async Task<IDisposable> SubscribeAsync(ComponentEventType eventType, IComponentEventHandler handler)
         {
-            Guard.AgainstNull(handler, nameof(handler));
+            Guard.NotNull(handler, nameof(handler));
 
             await _semaphore.WaitAsync();
             try
@@ -86,7 +86,7 @@ namespace Conduit.Core
         /// <returns>A subscription that can be disposed to unsubscribe</returns>
         public Task<IDisposable> SubscribeAsync(ComponentEventType eventType, Action<ComponentEvent> callback)
         {
-            Guard.AgainstNull(callback, nameof(callback));
+            Guard.NotNull(callback, nameof(callback));
 
             var handler = new ActionEventHandler(callback);
             return SubscribeAsync(eventType, handler);
@@ -100,7 +100,7 @@ namespace Conduit.Core
         /// <returns>A subscription that can be disposed to unsubscribe</returns>
         public Task<IDisposable> SubscribeAsync(ComponentEventType eventType, Func<ComponentEvent, Task> callback)
         {
-            Guard.AgainstNull(callback, nameof(callback));
+            Guard.NotNull(callback, nameof(callback));
 
             var handler = new AsyncActionEventHandler(callback);
             return SubscribeAsync(eventType, handler);
@@ -113,7 +113,7 @@ namespace Conduit.Core
         /// <param name="handler">The event handler to remove</param>
         public async Task UnsubscribeAsync(ComponentEventType eventType, IComponentEventHandler handler)
         {
-            Guard.AgainstNull(handler, nameof(handler));
+            Guard.NotNull(handler, nameof(handler));
 
             await _semaphore.WaitAsync();
             try
@@ -144,7 +144,7 @@ namespace Conduit.Core
         /// <param name="cancellationToken">Cancellation token</param>
         public async Task DispatchAsync(ComponentEvent componentEvent, CancellationToken cancellationToken = default)
         {
-            Guard.AgainstNull(componentEvent, nameof(componentEvent));
+            Guard.NotNull(componentEvent, nameof(componentEvent));
 
             if (!IsEnabled)
             {
@@ -187,7 +187,7 @@ namespace Conduit.Core
         {
             var evt = new ComponentEvent(
                 ComponentEventType.Loaded,
-                descriptor.ComponentId,
+                descriptor.Id,
                 descriptor,
                 componentType);
 
@@ -201,7 +201,7 @@ namespace Conduit.Core
         {
             var evt = new ComponentEvent(
                 ComponentEventType.Unloaded,
-                descriptor.ComponentId,
+                descriptor.Id,
                 descriptor,
                 null);
 
@@ -215,7 +215,7 @@ namespace Conduit.Core
         {
             var evt = new ComponentEvent(
                 ComponentEventType.Started,
-                descriptor.ComponentId,
+                descriptor.Id,
                 descriptor,
                 instance.GetType())
             {
@@ -232,7 +232,7 @@ namespace Conduit.Core
         {
             var evt = new ComponentEvent(
                 ComponentEventType.Stopped,
-                descriptor.ComponentId,
+                descriptor.Id,
                 descriptor,
                 instance.GetType())
             {
@@ -249,7 +249,7 @@ namespace Conduit.Core
         {
             var evt = new ComponentEvent(
                 ComponentEventType.Error,
-                descriptor.ComponentId,
+                descriptor.Id,
                 descriptor,
                 null)
             {

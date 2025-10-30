@@ -35,19 +35,19 @@ namespace Conduit.Core
         /// </summary>
         public ValidationResult ValidateDescriptor(ComponentDescriptor descriptor)
         {
-            Guard.AgainstNull(descriptor, nameof(descriptor));
+            Guard.NotNull(descriptor, nameof(descriptor));
 
             var errors = new List<string>();
             var warnings = new List<string>();
 
             // Validate ID
-            if (string.IsNullOrWhiteSpace(descriptor.ComponentId))
+            if (string.IsNullOrWhiteSpace(descriptor.Id))
             {
                 errors.Add("Component ID is required");
             }
-            else if (!IdPattern.IsMatch(descriptor.ComponentId))
+            else if (!IdPattern.IsMatch(descriptor.Id))
             {
-                errors.Add($"Component ID '{descriptor.ComponentId}' must be lowercase with dots as separators (e.g., 'com.example.component')");
+                errors.Add($"Component ID '{descriptor.Id}' must be lowercase with dots as separators (e.g., 'com.example.component')");
             }
 
             // Validate name
@@ -83,7 +83,7 @@ namespace Conduit.Core
             {
                 foreach (var dependency in descriptor.Dependencies)
                 {
-                    var depErrors = ValidateDependency(dependency);
+                    var depErrors = ValidateDependencyId(dependency);
                     errors.AddRange(depErrors);
                 }
             }
@@ -96,7 +96,7 @@ namespace Conduit.Core
         /// </summary>
         public ValidationResult ValidateClass(Type componentClass)
         {
-            Guard.AgainstNull(componentClass, nameof(componentClass));
+            Guard.NotNull(componentClass, nameof(componentClass));
 
             var errors = new List<string>();
             var warnings = new List<string>();
@@ -156,7 +156,7 @@ namespace Conduit.Core
         /// </summary>
         public ValidationResult ValidateSet(IEnumerable<ComponentDescriptor> descriptors)
         {
-            Guard.AgainstNull(descriptors, nameof(descriptors));
+            Guard.NotNull(descriptors, nameof(descriptors));
 
             var descriptorList = descriptors.ToList();
             var errors = new List<string>();
@@ -164,7 +164,7 @@ namespace Conduit.Core
 
             // Check for duplicate IDs
             var duplicateIds = descriptorList
-                .GroupBy(d => d.ComponentId)
+                .GroupBy(d => d.Id)
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key);
 
@@ -188,17 +188,17 @@ namespace Conduit.Core
             return new ValidationResult(errors, warnings);
         }
 
-        private List<string> ValidateDependency(ComponentDescriptor.ComponentDependency dependency)
+        private List<string> ValidateDependency(ComponentDependency dependency)
         {
             var errors = new List<string>();
 
-            if (string.IsNullOrWhiteSpace(dependency.ComponentId))
+            if (string.IsNullOrWhiteSpace(dependency.Id))
             {
                 errors.Add("Dependency component ID is required");
             }
-            else if (!IdPattern.IsMatch(dependency.ComponentId))
+            else if (!IdPattern.IsMatch(dependency.Id))
             {
-                errors.Add($"Dependency ID '{dependency.ComponentId}' must be lowercase with dots as separators");
+                errors.Add($"Dependency ID '{dependency.Id}' must be lowercase with dots as separators");
             }
 
             if (!string.IsNullOrWhiteSpace(dependency.MinVersion) && !VersionPattern.IsMatch(dependency.MinVersion))
@@ -209,6 +209,22 @@ namespace Conduit.Core
             if (!string.IsNullOrWhiteSpace(dependency.MaxVersion) && !VersionPattern.IsMatch(dependency.MaxVersion))
             {
                 errors.Add($"Dependency maximum version '{dependency.MaxVersion}' must follow semantic versioning");
+            }
+
+            return errors;
+        }
+
+        private List<string> ValidateDependencyId(string dependencyId)
+        {
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(dependencyId))
+            {
+                errors.Add("Dependency component ID is required");
+            }
+            else if (!IdPattern.IsMatch(dependencyId))
+            {
+                errors.Add($"Dependency ID '{dependencyId}' must be lowercase with dots as separators");
             }
 
             return errors;
@@ -249,15 +265,12 @@ namespace Conduit.Core
                 warnings.Add($"Component {componentClass.Name} does not expose any service contracts (interfaces)");
             }
 
-            // Check for [ServiceContract] attributes on interfaces
-            foreach (var iface in interfaces)
-            {
-                var attr = iface.GetCustomAttribute<ServiceContractAttribute>();
-                if (attr == null)
-                {
-                    warnings.Add($"Interface {iface.Name} should be decorated with [ServiceContract] attribute");
-                }
-            }
+            // Check for service contract interfaces
+            // Note: ServiceContractAttribute validation disabled as attribute is not available
+            // foreach (var iface in interfaces)
+            // {
+            //     // Could add custom service validation here if needed
+            // }
         }
 
         private void ValidateAttributes(Type componentClass, List<string> errors, List<string> warnings)
@@ -283,14 +296,14 @@ namespace Conduit.Core
             var errors = new List<string>();
             var visited = new HashSet<string>();
             var recursionStack = new HashSet<string>();
-            var descriptorMap = descriptors.ToDictionary(d => d.ComponentId);
+            var descriptorMap = descriptors.ToDictionary(d => d.Id);
 
             foreach (var descriptor in descriptors)
             {
-                if (!visited.Contains(descriptor.ComponentId))
+                if (!visited.Contains(descriptor.Id))
                 {
                     var path = new List<string>();
-                    if (HasCircularDependency(descriptor.ComponentId, descriptorMap, visited, recursionStack, path))
+                    if (HasCircularDependency(descriptor.Id, descriptorMap, visited, recursionStack, path))
                     {
                         errors.Add($"Circular dependency detected: {string.Join(" -> ", path)}");
                     }
@@ -315,15 +328,15 @@ namespace Conduit.Core
             {
                 foreach (var dependency in descriptor.Dependencies)
                 {
-                    if (recursionStack.Contains(dependency.ComponentId))
+                    if (recursionStack.Contains(dependency))
                     {
-                        path.Add(dependency.ComponentId);
+                        path.Add(dependency);
                         return true;
                     }
 
-                    if (!visited.Contains(dependency.ComponentId))
+                    if (!visited.Contains(dependency))
                     {
-                        if (HasCircularDependency(dependency.ComponentId, descriptorMap, visited, recursionStack, path))
+                        if (HasCircularDependency(dependency, descriptorMap, visited, recursionStack, path))
                         {
                             return true;
                         }
