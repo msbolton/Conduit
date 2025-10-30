@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Core</PackageId>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Core framework implementation for the Conduit messaging framework</Description>
     <PackageTags>messaging;framework;components;discovery</PackageTags>
