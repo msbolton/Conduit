@@ -296,12 +296,6 @@ namespace Conduit.Pipeline.Composition
             _innerPipeline.ClearBehaviors();
         }
 
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage) where TStageOutput : IList<TOutput>
-        {
-            ((Pipeline<IEnumerable<TInput>, IList<TOutput>>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
-            return this;
-        }
-
         /// <inheritdoc />
         public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage(object stage)
         {
@@ -462,8 +456,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(IPipelineStage<IList<TOutput>, TStageOutput> stage)
-            where TStageOutput : IList<TOutput>
+        IPipeline<IEnumerable<TInput>, IList<TOutput>> IPipeline<IEnumerable<TInput>, IList<TOutput>>.AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage)
         {
             throw new NotImplementedException("AddStage operation is not implemented for ParallelPipeline. Add stages to individual elements using the inner pipeline.");
         }
@@ -623,11 +616,6 @@ namespace Conduit.Pipeline.Composition
         public bool RemoveBehavior(string behaviorId) => _innerPipeline.RemoveBehavior(behaviorId);
         public IReadOnlyList<IBehaviorContribution> GetBehaviors() => _innerPipeline.GetBehaviors();
         public void ClearBehaviors() => _innerPipeline.ClearBehaviors();
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage) where TStageOutput : IList<TOutput>
-        {
-            ((Pipeline<IEnumerable<TInput>, IList<TOutput>>)_innerPipeline)._stages.Add(stage as IPipelineStage<object, object> ?? throw new InvalidCastException("Unable to cast stage to expected type"));
-            return this;
-        }
         public void AddStage(IPipelineStage<object, object> stage) => _innerPipeline.AddStage(stage);
         public void SetErrorHandler(Func<Exception, IList<TOutput>> errorHandler) =>
             _innerPipeline.SetErrorHandler(ex => default(TOutput)!);
@@ -762,8 +750,7 @@ namespace Conduit.Pipeline.Composition
         }
 
         /// <inheritdoc />
-        public IPipeline<IEnumerable<TInput>, IList<TOutput>> AddStage<TStageOutput>(IPipelineStage<IList<TOutput>, TStageOutput> stage)
-            where TStageOutput : IList<TOutput>
+        IPipeline<IEnumerable<TInput>, IList<TOutput>> IPipeline<IEnumerable<TInput>, IList<TOutput>>.AddStage<TStageOutput>(Conduit.Api.IPipelineStage<IList<TOutput>, TStageOutput> stage)
         {
             throw new NotImplementedException("AddStage operation is not implemented for DataflowParallelPipeline. Add stages to individual elements using the inner pipeline.");
         }

@@ -31,7 +31,7 @@ namespace Conduit.Resilience
         /// <summary>
         /// Gets or sets rate limiter configuration.
         /// </summary>
-        public RateLimiterConfig RateLimiter { get; set} = new();
+        public RateLimiterConfig RateLimiter { get; set; } = new();
 
         /// <summary>
         /// Circuit breaker configuration.
@@ -133,7 +133,7 @@ namespace Conduit.Resilience
             /// <summary>
             /// Gets or sets the maximum queue length.
             /// </summary>
-            public int MaxQueuedCalls { get; set} = 20;
+            public int MaxQueuedCalls { get; set; } = 20;
 
             /// <summary>
             /// Gets or sets the maximum wait duration for queued calls.
