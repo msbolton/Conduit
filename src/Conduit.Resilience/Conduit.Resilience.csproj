@@ -17,7 +17,7 @@
     <Authors>Conduit Contributors</Authors>
     <Description>Resilience patterns including circuit breaker, retry, bulkhead, and timeout for the Conduit messaging framework</Description>
     <PackageTags>resilience;circuit-breaker;retry;bulkhead;timeout;polly</PackageTags>
-    <RepositoryUrl>https://github.com/conduit/conduit-dotnet</RepositoryUrl>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

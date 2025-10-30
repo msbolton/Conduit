@@ -17,7 +17,7 @@
     <Authors>Conduit Contributors</Authors>
     <Description>TCP/Socket transport implementation for the Conduit messaging framework with framing protocol</Description>
     <PackageTags>conduit;messaging;tcp;socket;transport;framing</PackageTags>
-    <RepositoryUrl>https://github.com/conduit/conduit-dotnet</RepositoryUrl>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

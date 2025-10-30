@@ -17,7 +17,7 @@
     <Authors>Conduit Contributors</Authors>
     <Description>Core transport abstractions and connection management for the Conduit messaging framework</Description>
     <PackageTags>conduit;messaging;transport;networking;connection-pooling</PackageTags>
-    <RepositoryUrl>https://github.com/conduit/conduit-dotnet</RepositoryUrl>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

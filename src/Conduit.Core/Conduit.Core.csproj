@@ -17,7 +17,7 @@
     <Authors>Conduit Contributors</Authors>
     <Description>Core framework implementation for the Conduit messaging framework</Description>
     <PackageTags>messaging;framework;components;discovery</PackageTags>
-    <RepositoryUrl>https://github.com/conduit/conduit-dotnet</RepositoryUrl>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
