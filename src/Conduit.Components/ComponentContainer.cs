@@ -14,7 +14,7 @@ namespace Conduit.Components
     /// <summary>
     /// Container for hosting and managing pluggable components.
     /// </summary>
-    public class ComponentContainer : IDisposable
+    public class ComponentContainer : IComponentContainer
     {
         private readonly ComponentFactory _factory;
         private readonly IMessageBus? _messageBus;

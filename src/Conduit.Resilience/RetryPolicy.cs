@@ -59,6 +59,28 @@ namespace Conduit.Resilience
                 name, _config.MaxAttempts, _config.Strategy);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the RetryPolicy class with simple parameters.
+        /// </summary>
+        public RetryPolicy(string name, int retryCount, RetryStrategy strategy) :
+            this(name, new ResilienceConfiguration.RetryConfig
+            {
+                Enabled = true,
+                MaxAttempts = retryCount,
+                Strategy = strategy switch
+                {
+                    RetryStrategy.Exponential => BackoffStrategy.Exponential,
+                    RetryStrategy.Linear => BackoffStrategy.Linear,
+                    RetryStrategy.Fixed => BackoffStrategy.Fixed,
+                    RetryStrategy.Immediate => BackoffStrategy.Fixed,
+                    _ => BackoffStrategy.Exponential
+                },
+                WaitDuration = TimeSpan.FromSeconds(1),
+                MaxWaitDuration = TimeSpan.FromSeconds(30)
+            })
+        {
+        }
+
         /// <inheritdoc/>
         public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
         {

@@ -12,7 +12,7 @@ namespace Conduit.Messaging
     /// <summary>
     /// Manages failed messages that couldn't be processed successfully.
     /// </summary>
-    public class DeadLetterQueue : IDisposable
+    public class DeadLetterQueue : IDeadLetterQueue
     {
         private readonly ConcurrentQueue<DeadLetterEntry> _queue;
         private readonly ConcurrentDictionary<string, DeadLetterEntry> _index;

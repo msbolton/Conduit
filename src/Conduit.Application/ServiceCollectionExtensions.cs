@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Conduit.Api;
 using Conduit.Core;
 using Conduit.Messaging;
 using Conduit.Components;
@@ -123,8 +124,7 @@ namespace Conduit.Application
             {
                 services.TryAddSingleton<IFlowController>(sp =>
                     new FlowController(
-                        maxConcurrent: configuration.Messaging.MaxConcurrentMessages,
-                        sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FlowController>>()));
+                        maxConcurrentMessages: configuration.Messaging.MaxConcurrentMessages));
             }
 
             return services;
@@ -144,7 +144,7 @@ namespace Conduit.Application
 
             // MessagePack serializer
             services.TryAddSingleton<IMessageSerializer>(sp =>
-                new MessagePackMessageSerializer());
+                new MessagePackSerializer());
 
             return services;
         }
@@ -162,10 +162,13 @@ namespace Conduit.Application
             {
                 services.TryAddSingleton<IAuthenticationProvider>(sp =>
                     new JwtAuthenticationProvider(
-                        configuration.Security.JwtSecretKey!,
-                        configuration.Security.JwtIssuer ?? "Conduit",
-                        configuration.Security.JwtAudience ?? "Conduit",
-                        TimeSpan.FromMinutes(configuration.Security.JwtExpirationMinutes),
+                        new JwtOptions
+                        {
+                            SecretKey = configuration.Security.JwtSecretKey!,
+                            Issuer = configuration.Security.JwtIssuer ?? "Conduit",
+                            Audience = configuration.Security.JwtAudience ?? "Conduit",
+                            TokenExpiration = TimeSpan.FromMinutes(configuration.Security.JwtExpirationMinutes)
+                        },
                         sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JwtAuthenticationProvider>>()));
             }
 
@@ -175,7 +178,10 @@ namespace Conduit.Application
             {
                 services.TryAddSingleton<IEncryptionService>(sp =>
                     new AesEncryptionService(
-                        configuration.Security.EncryptionKey!,
+                        new EncryptionOptions
+                        {
+                            KeyStorePassword = configuration.Security.EncryptionKey!
+                        },
                         sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AesEncryptionService>>()));
             }
 
@@ -184,6 +190,7 @@ namespace Conduit.Application
             {
                 services.TryAddSingleton<IAccessControl>(sp =>
                     new AccessControl(
+                        new AccessControlOptions(),
                         sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AccessControl>>()));
             }
 

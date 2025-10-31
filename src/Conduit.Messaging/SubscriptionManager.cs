@@ -12,7 +12,7 @@ namespace Conduit.Messaging
     /// <summary>
     /// Manages event subscriptions for the message bus.
     /// </summary>
-    public class SubscriptionManager
+    public class SubscriptionManager : ISubscriptionManager
     {
         private readonly ConcurrentDictionary<Type, List<IMessageSubscription>> _subscriptions;
         private readonly ReaderWriterLockSlim _lock;

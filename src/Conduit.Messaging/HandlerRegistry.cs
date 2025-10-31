@@ -10,7 +10,7 @@ namespace Conduit.Messaging
     /// <summary>
     /// Registry for managing command and query handlers.
     /// </summary>
-    public class HandlerRegistry
+    public class HandlerRegistry : IHandlerRegistry
     {
         private readonly ConcurrentDictionary<Type, object> _commandHandlers;
         private readonly ConcurrentDictionary<Type, object> _queryHandlers;

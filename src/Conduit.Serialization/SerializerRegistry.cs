@@ -10,7 +10,7 @@ namespace Conduit.Serialization
     /// <summary>
     /// Registry for managing and selecting message serializers.
     /// </summary>
-    public class SerializerRegistry
+    public class SerializerRegistry : ISerializerRegistry
     {
         private readonly ConcurrentDictionary<SerializationFormat, IMessageSerializer> _serializers;
         private readonly ConcurrentDictionary<string, SerializationFormat> _mimeTypeMap;

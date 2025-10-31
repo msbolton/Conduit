@@ -15,7 +15,7 @@ namespace Conduit.Security
     /// Access control service implementing Role-Based Access Control (RBAC)
     /// and Attribute-Based Access Control (ABAC).
     /// </summary>
-    public class AccessControl
+    public class AccessControl : IAccessControl
     {
         private readonly AccessControlOptions _options;
         private readonly ILogger? _logger;

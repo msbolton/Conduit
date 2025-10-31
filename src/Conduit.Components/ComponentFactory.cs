@@ -12,7 +12,7 @@ namespace Conduit.Components
     /// <summary>
     /// Factory for creating component instances.
     /// </summary>
-    public class ComponentFactory
+    public class ComponentFactory : IComponentFactory
     {
         private readonly System.IServiceProvider _serviceProvider;
         private readonly ILogger<ComponentFactory> _logger;

@@ -178,7 +178,7 @@ namespace Conduit.Security
         }
 
         /// <inheritdoc/>
-        public async Task<AuthenticationResult> RefreshTokenAsync(
+        public Task<AuthenticationResult> RefreshTokenAsync(
             string refreshToken,
             CancellationToken cancellationToken = default)
         {
@@ -188,26 +188,26 @@ namespace Conduit.Security
             {
                 if (!_options.EnableRefreshTokens)
                 {
-                    return AuthenticationResult.Failed(
+                    return Task.FromResult(AuthenticationResult.Failed(
                         "Refresh tokens are not enabled",
-                        "REFRESH_NOT_ENABLED");
+                        "REFRESH_NOT_ENABLED"));
                 }
 
                 // Validate refresh token
                 if (!_refreshTokens.TryGetValue(refreshToken, out var refreshInfo))
                 {
                     _logger?.LogWarning("Invalid refresh token");
-                    return AuthenticationResult.Failed(
+                    return Task.FromResult(AuthenticationResult.Failed(
                         "Invalid refresh token",
-                        AuthenticationErrorCodes.RefreshTokenInvalid);
+                        AuthenticationErrorCodes.RefreshTokenInvalid));
                 }
 
                 if (refreshInfo.ExpiresAt < DateTime.UtcNow)
                 {
                     _refreshTokens.TryRemove(refreshToken, out _);
-                    return AuthenticationResult.Failed(
+                    return Task.FromResult(AuthenticationResult.Failed(
                         "Refresh token has expired",
-                        AuthenticationErrorCodes.RefreshTokenExpired);
+                        AuthenticationErrorCodes.RefreshTokenExpired));
                 }
 
                 // Create new claims
@@ -248,12 +248,12 @@ namespace Conduit.Security
 
                 _logger?.LogInformation("Token refreshed for user {Username}", refreshInfo.Username);
 
-                return AuthenticationResult.Succeeded(context, token, newRefreshToken, expiresAt);
+                return Task.FromResult(AuthenticationResult.Succeeded(context, token, newRefreshToken, expiresAt));
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Token refresh failed with exception");
-                return AuthenticationResult.Failed("Token refresh failed", "REFRESH_ERROR");
+                return Task.FromResult(AuthenticationResult.Failed("Token refresh failed", "REFRESH_ERROR"));
             }
         }
 

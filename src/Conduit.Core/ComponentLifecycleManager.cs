@@ -10,7 +10,7 @@ namespace Conduit.Core;
 /// This class handles the initialization, startup, shutdown, and cleanup
 /// of components according to their dependencies and lifecycle requirements.
 /// </summary>
-public class ComponentLifecycleManager
+public class ComponentLifecycleManager : IComponentLifecycleManager
 {
     private readonly ComponentRegistry _registry;
     private readonly ILogger<ComponentLifecycleManager>? _logger;

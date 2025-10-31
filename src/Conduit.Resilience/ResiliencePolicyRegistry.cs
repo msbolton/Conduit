@@ -13,7 +13,7 @@ namespace Conduit.Resilience
     /// Registry for managing multiple resilience policies.
     /// Provides centralized policy management and composition.
     /// </summary>
-    public class ResiliencePolicyRegistry
+    public class ResiliencePolicyRegistry : IResiliencePolicyRegistry
     {
         private readonly ConcurrentDictionary<string, IResiliencePolicy> _policies;
         private readonly ILogger? _logger;
@@ -86,6 +86,20 @@ namespace Conduit.Resilience
                 throw new InvalidOperationException($"Policy '{name}' not found in registry");
             }
             return policy;
+        }
+
+        /// <summary>
+        /// Registers a policy by name.
+        /// </summary>
+        /// <param name="name">The policy name</param>
+        /// <param name="policy">The policy to register</param>
+        public void Register(string name, IResiliencePolicy policy)
+        {
+            Guard.AgainstNullOrEmpty(name, nameof(name));
+            Guard.AgainstNull(policy, nameof(policy));
+
+            _policies[name] = policy;
+            _logger?.LogInformation("Policy '{Name}' registered in registry", name);
         }
 
         /// <summary>
@@ -285,6 +299,39 @@ namespace Conduit.Resilience
                     .GroupBy(p => p.Pattern)
                     .ToDictionary(g => g.Key, g => g.Count())
             };
+        }
+
+        /// <summary>
+        /// Creates a circuit breaker policy.
+        /// </summary>
+        public static IResiliencePolicy CreateCircuitBreaker(string name, int failureThreshold, TimeSpan timeout)
+        {
+            return new CircuitBreakerPolicy(name, new ResilienceConfiguration.CircuitBreakerConfig
+            {
+                Enabled = true,
+                FailureThreshold = failureThreshold,
+                WaitDurationInOpenState = timeout
+            });
+        }
+
+        /// <summary>
+        /// Creates a retry policy.
+        /// </summary>
+        public static IResiliencePolicy CreateRetry(string name, int retryCount, RetryStrategy strategy)
+        {
+            return new RetryPolicy(name, retryCount, strategy);
+        }
+
+        /// <summary>
+        /// Creates a timeout policy.
+        /// </summary>
+        public static IResiliencePolicy CreateTimeout(string name, TimeSpan timeout)
+        {
+            return new TimeoutPolicy(name, new ResilienceConfiguration.TimeoutConfig
+            {
+                Enabled = true,
+                Duration = timeout
+            });
         }
     }
 

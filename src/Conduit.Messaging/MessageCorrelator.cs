@@ -12,7 +12,7 @@ namespace Conduit.Messaging
     /// <summary>
     /// Manages message correlation for tracking related messages and conversations.
     /// </summary>
-    public class MessageCorrelator : IDisposable
+    public class MessageCorrelator : IMessageCorrelator
     {
         private readonly ConcurrentDictionary<string, CorrelationContext> _correlations;
         private readonly ConcurrentDictionary<string, ConversationContext> _conversations;

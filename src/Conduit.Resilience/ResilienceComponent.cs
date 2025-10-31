@@ -11,15 +11,18 @@ namespace Conduit.Resilience
     /// Resilience component that provides circuit breaker, retry, bulkhead, timeout, and rate limiting capabilities.
     /// </summary>
     [Component(
-        Name = "Conduit.Resilience",
-        Version = "0.1.0",
+        "conduit.resilience",
+        "Conduit.Resilience",
+        "0.1.0",
         Description = "Provides resilience patterns including circuit breaker, retry, bulkhead, timeout, and rate limiting"
     )]
-    public class ResilienceComponent : IPluggableComponent
+    public class ResilienceComponent : IPluggableComponent, IDisposable
     {
         private readonly ILogger<ResilienceComponent>? _logger;
         private ResiliencePolicyRegistry? _policyRegistry;
         private ComponentContext? _componentContext;
+        private ComponentState _state = ComponentState.Uninitialized;
+        private bool _disposed;
 
         /// <inheritdoc/>
         public string Id { get; } = "conduit.resilience";
@@ -59,23 +62,17 @@ namespace Conduit.Resilience
 
             Manifest = new ComponentManifest
             {
-                ComponentId = Id,
+                Id = Id,
                 Name = Name,
                 Version = Version,
                 Description = Description,
                 Author = "Conduit Contributors",
-                MinimumCoreVersion = "0.1.0",
-                Dependencies = Array.Empty<string>(),
-                Tags = new[] { "resilience", "circuit-breaker", "retry", "bulkhead", "timeout", "rate-limiting" }
+                MinFrameworkVersion = "0.1.0",
+                Dependencies = new List<ComponentDependency>(),
+                Tags = new HashSet<string> { "resilience", "circuit-breaker", "retry", "bulkhead", "timeout", "rate-limiting" }
             };
 
-            IsolationRequirements = new IsolationRequirements
-            {
-                RequiresSeparateAppDomain = false,
-                RequiresNetworkAccess = false,
-                RequiresFileSystemAccess = false,
-                TrustLevel = TrustLevel.Full
-            };
+            IsolationRequirements = IsolationRequirements.Standard();
         }
 
         /// <inheritdoc/>
@@ -132,38 +129,43 @@ namespace Conduit.Resilience
             {
                 new ComponentFeature
                 {
+                    Id = "CircuitBreaker",
                     Name = "CircuitBreaker",
                     Description = "Circuit breaker pattern to prevent cascading failures",
                     Version = Version,
-                    IsEnabled = true
+                    IsEnabledByDefault = true
                 },
                 new ComponentFeature
                 {
+                    Id = "Retry",
                     Name = "Retry",
                     Description = "Retry pattern with exponential, linear, and fixed backoff strategies",
                     Version = Version,
-                    IsEnabled = true
+                    IsEnabledByDefault = true
                 },
                 new ComponentFeature
                 {
+                    Id = "Bulkhead",
                     Name = "Bulkhead",
                     Description = "Bulkhead isolation pattern to limit concurrent executions",
                     Version = Version,
-                    IsEnabled = true
+                    IsEnabledByDefault = true
                 },
                 new ComponentFeature
                 {
+                    Id = "Timeout",
                     Name = "Timeout",
                     Description = "Timeout pattern with optimistic and pessimistic strategies",
                     Version = Version,
-                    IsEnabled = true
+                    IsEnabledByDefault = true
                 },
                 new ComponentFeature
                 {
+                    Id = "RateLimiter",
                     Name = "RateLimiter",
                     Description = "Rate limiting pattern using sliding window algorithm",
                     Version = Version,
-                    IsEnabled = true
+                    IsEnabledByDefault = true
                 }
             };
         }
@@ -177,8 +179,8 @@ namespace Conduit.Resilience
                 {
                     ServiceType = typeof(ResiliencePolicyRegistry),
                     ImplementationType = _policyRegistry?.GetType() ?? typeof(ResiliencePolicyRegistry),
-                    ServiceInstance = _policyRegistry,
-                    Lifetime = ServiceLifetime.Singleton
+                    Lifetime = ServiceLifetime.Singleton,
+                    Factory = _ => _policyRegistry ?? new ResiliencePolicyRegistry()
                 }
             };
         }
@@ -300,6 +302,91 @@ namespace Conduit.Resilience
             }
 
             _logger?.LogInformation("Initialized {Count} default resilience policies", _policyRegistry?.Count ?? 0);
+        }
+
+        /// <inheritdoc/>
+        public ComponentState GetState() => _state;
+
+        /// <inheritdoc/>
+        public Task StartAsync(CancellationToken cancellationToken = default)
+        {
+            _state = ComponentState.Running;
+            _logger?.LogInformation("Resilience component '{Name}' started", Name);
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task StopAsync(CancellationToken cancellationToken = default)
+        {
+            _state = ComponentState.Stopped;
+            _logger?.LogInformation("Resilience component '{Name}' stopped", Name);
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task InitializeAsync(ComponentConfiguration configuration, CancellationToken cancellationToken = default)
+        {
+            Configuration = configuration;
+            _state = ComponentState.Initialized;
+            _logger?.LogInformation("Resilience component '{Name}' initialized", Name);
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public void OnDetach()
+        {
+            // Synchronous cleanup if needed
+            _logger?.LogInformation("Resilience component '{Name}' detached (sync)", Name);
+        }
+
+        /// <inheritdoc/>
+        public Task DisposeAsync()
+        {
+            if (!_disposed)
+            {
+                Dispose();
+                _disposed = true;
+            }
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
+        {
+            var isHealthy = _state == ComponentState.Running;
+            var healthData = new Dictionary<string, object>
+            {
+                ["State"] = _state.ToString(),
+                ["PolicyCount"] = _policyRegistry?.Count ?? 0
+            };
+
+            var health = isHealthy
+                ? ComponentHealth.Healthy(Id, healthData)
+                : ComponentHealth.Degraded(Id, $"Component state: {_state}", healthData);
+
+            return Task.FromResult(health);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                // Dispose any rate limiter policies
+                if (_policyRegistry != null)
+                {
+                    foreach (var policyName in _policyRegistry.PolicyNames)
+                    {
+                        var policy = _policyRegistry.GetPolicy(policyName);
+                        if (policy is IDisposable disposable)
+                        {
+                            disposable.Dispose();
+                        }
+                    }
+                }
+                _disposed = true;
+                _logger?.LogInformation("Resilience component '{Name}' disposed", Name);
+            }
         }
     }
 }

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Metrics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -35,13 +39,40 @@ public class MetricsComponent : IPluggableComponent
         Id = Guid.NewGuid().ToString();
         Name = "Conduit.Metrics";
         Version = "0.6.0";
+
+        Manifest = new ComponentManifest
+        {
+            Id = Id,
+            Name = Name,
+            Version = Version,
+            Description = Description,
+            Author = "Conduit Contributors",
+            MinFrameworkVersion = "0.1.0",
+            Dependencies = new List<ComponentDependency>(),
+            Tags = new HashSet<string> { "metrics", "monitoring", "telemetry", "health-checks" }
+        };
+
+        IsolationRequirements = IsolationRequirements.Standard();
     }
 
     public string Id { get; }
     public string Name { get; }
     public string Version { get; }
+    public string Description { get; } = "Metrics and monitoring component for Conduit framework";
+    public ComponentConfiguration? Configuration { get; set; }
+    public ISecurityContext? SecurityContext { get; set; }
 
-    public Task InitializeAsync(IComponentContext context, CancellationToken cancellationToken = default)
+    public ComponentManifest Manifest { get; }
+    public IsolationRequirements IsolationRequirements { get; }
+
+    public Task InitializeAsync(ComponentConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        Configuration = configuration;
+        _logger.LogInformation("Metrics component '{Name}' initialized", Name);
+        return Task.CompletedTask;
+    }
+
+    public Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Initializing Metrics component");
 
@@ -93,10 +124,6 @@ public class MetricsComponent : IPluggableComponent
         return Task.CompletedTask;
     }
 
-    public ValueTask DisposeAsync()
-    {
-        return ValueTask.CompletedTask;
-    }
 
     /// <summary>
     /// Gets the metrics collector.
@@ -112,4 +139,102 @@ public class MetricsComponent : IPluggableComponent
     /// Gets the metrics reporter.
     /// </summary>
     public MetricsReporter GetReporter() => _reporter;
+
+    public Task OnDetachAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Metrics component '{Name}' detached", Name);
+        return Task.CompletedTask;
+    }
+
+    public IEnumerable<IBehaviorContribution> ContributeBehaviors()
+    {
+        return Array.Empty<IBehaviorContribution>();
+    }
+
+    public IEnumerable<ComponentFeature> ExposeFeatures()
+    {
+        return new[]
+        {
+            new ComponentFeature
+            {
+                Id = "Metrics",
+                Name = "Metrics Collection",
+                Description = "Collects and reports application metrics",
+                Version = Version,
+                IsEnabledByDefault = true
+            },
+            new ComponentFeature
+            {
+                Id = "HealthChecks",
+                Name = "Health Checks",
+                Description = "Provides health check capabilities",
+                Version = Version,
+                IsEnabledByDefault = true
+            }
+        };
+    }
+
+    public IEnumerable<ServiceContract> ProvideServices()
+    {
+        return new[]
+        {
+            new ServiceContract
+            {
+                ServiceType = typeof(IMetricsCollector),
+                ImplementationType = _metricsCollector.GetType(),
+                Lifetime = ServiceLifetime.Singleton,
+                Factory = _ => _metricsCollector
+            },
+            new ServiceContract
+            {
+                ServiceType = typeof(HealthCheckService),
+                ImplementationType = _healthCheckService.GetType(),
+                Lifetime = ServiceLifetime.Singleton,
+                Factory = _ => _healthCheckService
+            }
+        };
+    }
+
+    public IEnumerable<MessageHandlerRegistration> RegisterHandlers()
+    {
+        return Array.Empty<MessageHandlerRegistration>();
+    }
+
+    public bool IsCompatibleWith(string coreVersion)
+    {
+        return Version.CompareTo(coreVersion) >= 0;
+    }
+
+    public ComponentState GetState()
+    {
+        return ComponentState.Running;
+    }
+
+    public void OnDetach()
+    {
+        _logger.LogInformation("Metrics component '{Name}' detached (sync)", Name);
+    }
+
+    public Task DisposeAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
+    {
+        var healthData = new Dictionary<string, object>
+        {
+            ["ComponentName"] = Name,
+            ["Version"] = Version,
+            ["Enabled"] = _configuration.Enabled
+        };
+
+        var health = ComponentHealth.Healthy(Id, healthData);
+        return Task.FromResult(health);
+    }
+
+    public void Dispose()
+    {
+        _logger.LogInformation("Metrics component '{Name}' disposed", Name);
+    }
 }

@@ -12,7 +12,7 @@ namespace Conduit.Messaging
     /// <summary>
     /// Controls message flow and provides backpressure management.
     /// </summary>
-    public class FlowController : IDisposable
+    public class FlowController : IFlowController
     {
         private readonly int _maxConcurrentMessages;
         private readonly int _maxQueueSize;

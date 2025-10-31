@@ -352,7 +352,7 @@ namespace Conduit.Security
 
         private byte[] EncryptGcm(byte[] plainData, byte[] key)
         {
-            using var aes = new AesGcm(key);
+            using var aes = new AesGcm(key, TagSize);
             var nonce = GenerateRandomNonce(NonceSize);
             var ciphertext = new byte[plainData.Length];
             var tag = new byte[TagSize];
@@ -384,7 +384,7 @@ namespace Conduit.Security
             Buffer.BlockCopy(encryptedData, NonceSize, ciphertext, 0, ciphertext.Length);
             Buffer.BlockCopy(encryptedData, NonceSize + ciphertext.Length, tag, 0, TagSize);
 
-            using var aes = new AesGcm(key);
+            using var aes = new AesGcm(key, TagSize);
             var plaintext = new byte[ciphertext.Length];
 
             aes.Decrypt(nonce, ciphertext, tag, plaintext);

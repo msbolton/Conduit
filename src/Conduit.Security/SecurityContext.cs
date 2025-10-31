@@ -51,7 +51,7 @@ namespace Conduit.Security
             return _principal;
         }
 
-        public bool IsAuthenticated()
+        public bool IsUserAuthenticated()
         {
             return _principal.Identity?.IsAuthenticated ?? false;
         }
@@ -100,6 +100,41 @@ namespace Conduit.Security
         public string? GetTenantId()
         {
             return _tenantId;
+        }
+
+        // ISecurityContext interface implementation
+        public string? UserId => GetUserId();
+        public string? UserName => GetUserName();
+        public IReadOnlySet<string> Roles => _roles.ToHashSet();
+        public IReadOnlyDictionary<string, object> Claims => _claims.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        public bool IsAuthenticated => _principal.Identity?.IsAuthenticated ?? false;
+        public string? AuthenticationScheme => _principal.Identity?.AuthenticationType;
+        public string? Token => GetAuthenticationToken();
+        public string? TenantId => GetTenantId();
+
+        public bool IsInRole(string role) => HasRole(role);
+
+        public bool HasClaim(string claimType)
+        {
+            return _claims.ContainsKey(claimType) || _principal.Claims.Any(c => c.Type == claimType);
+        }
+
+        public T GetClaimValue<T>(string claimType, T defaultValue = default!)
+        {
+            var claimValue = GetClaim(claimType);
+            if (claimValue == null) return defaultValue;
+
+            try
+            {
+                if (typeof(T) == typeof(string))
+                    return (T)(object)claimValue.ToString()!;
+
+                return (T)Convert.ChangeType(claimValue, typeof(T));
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
         /// <summary>

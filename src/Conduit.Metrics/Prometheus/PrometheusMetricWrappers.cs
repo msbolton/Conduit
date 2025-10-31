@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Prometheus;
 
 namespace Conduit.Metrics.Prometheus;
@@ -186,9 +191,9 @@ internal class PrometheusSummary : ISummary
 
     public double GetValue(params string[] labelValues)
     {
-        return labelValues.Length > 0
-            ? _summary.WithLabels(labelValues).Sum
-            : _summary.Sum;
+        // For Prometheus Summary, direct value access is not available
+        // Return 0.0 as a placeholder - in practice, summaries are read via scraping
+        return 0.0;
     }
 }
 
