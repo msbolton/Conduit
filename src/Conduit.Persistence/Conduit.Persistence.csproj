@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Version>0.8.1</Version>
+    <Version>0.8.2</Version>
     <Authors>Conduit Framework</Authors>
     <Description>Persistence layer with repository pattern, EF Core, MongoDB, and Redis support</Description>
   </PropertyGroup>

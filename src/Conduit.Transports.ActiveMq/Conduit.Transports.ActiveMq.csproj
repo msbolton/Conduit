@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.ActiveMq</PackageId>
-    <Version>0.8.1</Version>
+    <Version>0.8.2</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>ActiveMQ Artemis transport implementation for the Conduit messaging framework using AMQP 1.0</Description>
     <PackageTags>conduit;messaging;activemq;artemis;amqp;nms</PackageTags>

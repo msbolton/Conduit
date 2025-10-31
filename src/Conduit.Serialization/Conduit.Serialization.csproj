@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Serialization</PackageId>
-    <Version>0.8.1</Version>
+    <Version>0.8.2</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Multi-format serialization support for the Conduit messaging framework</Description>
     <PackageTags>serialization;json;msgpack;protobuf;formats</PackageTags>
