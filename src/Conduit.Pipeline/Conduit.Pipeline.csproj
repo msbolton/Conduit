@@ -24,6 +24,7 @@
     <ProjectReference Include="..\Conduit.Api\Conduit.Api.csproj" />
     <ProjectReference Include="..\Conduit.Common\Conduit.Common.csproj" />
     <ProjectReference Include="..\Conduit.Core\Conduit.Core.csproj" />
+    <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
   </ItemGroup>
 
   <ItemGroup>

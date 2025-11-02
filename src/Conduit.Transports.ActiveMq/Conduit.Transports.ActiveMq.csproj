@@ -25,11 +25,13 @@
     <ProjectReference Include="..\Conduit.Common\Conduit.Common.csproj" />
     <ProjectReference Include="..\Conduit.Transports.Core\Conduit.Transports.Core.csproj" />
     <ProjectReference Include="..\Conduit.Serialization\Conduit.Serialization.csproj" />
+    <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Apache.NMS.AMQP" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
   </ItemGroup>
 
 </Project>

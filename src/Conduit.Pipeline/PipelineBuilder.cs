@@ -20,7 +20,7 @@ namespace Conduit.Pipeline
     {
         private readonly List<IPipelineStage<object, object>> _stages;
         private readonly List<IPipelineInterceptor> _interceptors;
-        private readonly List<BehaviorContribution> _behaviors;
+        private readonly List<Behaviors.BehaviorContribution> _behaviors;
         private PipelineConfiguration _configuration;
         private PipelineMetadataBuilder _metadataBuilder;
         private Func<Exception, TOutput>? _errorHandler;
@@ -35,7 +35,7 @@ namespace Conduit.Pipeline
         {
             _stages = new List<IPipelineStage<object, object>>();
             _interceptors = new List<IPipelineInterceptor>();
-            _behaviors = new List<BehaviorContribution>();
+            _behaviors = new List<Behaviors.BehaviorContribution>();
             _configuration = PipelineConfiguration.Default;
             _metadataBuilder = PipelineMetadata.Builder()
                 .WithName("Pipeline")
@@ -150,7 +150,7 @@ namespace Conduit.Pipeline
         /// </summary>
         /// <param name="behavior">The behavior contribution to add</param>
         /// <returns>The builder for method chaining</returns>
-        public PipelineBuilder<TInput, TOutput> AddBehavior(BehaviorContribution behavior)
+        public PipelineBuilder<TInput, TOutput> AddBehavior(Behaviors.BehaviorContribution behavior)
         {
             Guard.NotNull(behavior, nameof(behavior));
             _behaviors.Add(behavior);
@@ -174,7 +174,7 @@ namespace Conduit.Pipeline
             Guard.NotNullOrEmpty(name, nameof(name));
             Guard.NotNull(behavior, nameof(behavior));
 
-            var contribution = new BehaviorContribution
+            var contribution = new Behaviors.BehaviorContribution
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = name,

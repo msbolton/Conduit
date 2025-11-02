@@ -56,10 +56,10 @@ public interface IComponentContainer : IDisposable
     /// </summary>
     IEnumerable<IPluggableComponent> GetAllComponents();
 
-    /// <summary>
-    /// Gets all behavior contributions.
-    /// </summary>
-    IEnumerable<BehaviorContribution> GetBehaviorContributions();
+    // /// <summary>
+    // /// Gets all behavior contributions.
+    // /// </summary>
+    // IEnumerable<BehaviorContribution> GetBehaviorContributions();
 
     /// <summary>
     /// Gets the health status of all components.

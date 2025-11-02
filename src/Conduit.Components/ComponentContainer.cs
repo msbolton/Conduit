@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Common;
-using Conduit.Messaging;
 using Microsoft.Extensions.Logging;
 
 namespace Conduit.Components
@@ -17,27 +16,24 @@ namespace Conduit.Components
     public class ComponentContainer : IComponentContainer
     {
         private readonly ComponentFactory _factory;
-        private readonly IMessageBus? _messageBus;
         private readonly System.IServiceProvider _serviceProvider;
         private readonly ILogger<ComponentContainer> _logger;
         private readonly ConcurrentDictionary<string, IPluggableComponent> _components;
         private readonly ConcurrentDictionary<string, ComponentContext> _contexts;
-        private readonly BehaviorContributionCollection _behaviors;
+        // private readonly BehaviorContributionCollection _behaviors;
         private bool _disposed;
 
         public ComponentContainer(
             ComponentFactory factory,
             System.IServiceProvider serviceProvider,
-            IMessageBus? messageBus = null,
             ILogger<ComponentContainer>? logger = null)
         {
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            _messageBus = messageBus;
             _logger = logger ?? new Microsoft.Extensions.Logging.Abstractions.NullLogger<ComponentContainer>();
             _components = new ConcurrentDictionary<string, IPluggableComponent>();
             _contexts = new ConcurrentDictionary<string, ComponentContext>();
-            _behaviors = new BehaviorContributionCollection();
+            // _behaviors = new BehaviorContributionCollection();
         }
 
         /// <summary>
@@ -73,10 +69,10 @@ namespace Conduit.Components
             _components[componentId] = component;
 
             // Collect behavior contributions
-            CollectBehaviorContributions(component);
+            // CollectBehaviorContributions(component);
 
             // Register message handlers
-            RegisterMessageHandlers(component);
+            // RegisterMessageHandlers(component);
 
             // Expose services
             ExposeServices(component);
@@ -117,10 +113,10 @@ namespace Conduit.Components
             _components[manifest.Id] = component;
 
             // Collect behavior contributions
-            CollectBehaviorContributions(component);
+            // CollectBehaviorContributions(component);
 
             // Register message handlers
-            RegisterMessageHandlers(component);
+            // RegisterMessageHandlers(component);
 
             // Expose services
             ExposeServices(component);
@@ -220,13 +216,13 @@ namespace Conduit.Components
             return _components.Values;
         }
 
-        /// <summary>
-        /// Gets all behavior contributions.
-        /// </summary>
-        public IEnumerable<BehaviorContribution> GetBehaviorContributions()
-        {
-            return _behaviors.GetOrdered();
-        }
+        // /// <summary>
+        // /// Gets all behavior contributions.
+        // /// </summary>
+        // public IEnumerable<BehaviorContribution> GetBehaviorContributions()
+        // {
+        //     return _behaviors.GetOrdered();
+        // }
 
         /// <summary>
         /// Gets the health status of all components.
@@ -263,41 +259,45 @@ namespace Conduit.Components
         {
             var manifest = component.Manifest;
 
+            // TODO: Remove this when ComponentContext is redesigned to not require MessageBus
+            var nullMessageBus = (Api.IMessageBus?)_serviceProvider.GetService(typeof(Api.IMessageBus));
+            var nullMetricsCollector = (Api.IMetricsCollector?)_serviceProvider.GetService(typeof(Api.IMetricsCollector));
+
             return new ComponentContext(
                 (Api.IServiceProvider)_serviceProvider,
-                _messageBus ?? throw new InvalidOperationException("MessageBus not configured"),
+                nullMessageBus ?? throw new InvalidOperationException("MessageBus not available from service provider"),
                 (Api.ILogger)_logger,
-                null! // TODO: Add IMetricsCollector when available
+                nullMetricsCollector ?? throw new InvalidOperationException("MetricsCollector not available from service provider")
             );
         }
 
-        private void CollectBehaviorContributions(IPluggableComponent component)
-        {
-            var contributions = component.ContributeBehaviors();
-            if (contributions != null && contributions.Any())
-            {
-                _behaviors.AddRange(contributions.OfType<BehaviorContribution>());
-                _logger.LogDebug("Collected {Count} behavior contributions from component {ComponentId}",
-                    contributions.Count(), component.Id);
-            }
-        }
+        // private void CollectBehaviorContributions(IPluggableComponent component)
+        // {
+        //     var contributions = component.ContributeBehaviors();
+        //     if (contributions != null && contributions.Any())
+        //     {
+        //         _behaviors.AddRange(contributions.OfType<BehaviorContribution>());
+        //         _logger.LogDebug("Collected {Count} behavior contributions from component {ComponentId}",
+        //             contributions.Count(), component.Id);
+        //     }
+        // }
 
-        private void RegisterMessageHandlers(IPluggableComponent component)
-        {
-            if (_messageBus == null)
-            {
-                return;
-            }
-
-            var handlers = component.RegisterHandlers();
-            if (handlers != null && handlers.Any())
-            {
-                // Register handlers with message bus
-                // This would typically integrate with the MessageBus's handler registration
-                _logger.LogDebug("Registered {Count} message handlers from component {ComponentId}",
-                    handlers.Count(), component.Id);
-            }
-        }
+        // private void RegisterMessageHandlers(IPluggableComponent component)
+        // {
+        //     if (_messageBus == null)
+        //     {
+        //         return;
+        //     }
+        //
+        //     var handlers = component.RegisterHandlers();
+        //     if (handlers != null && handlers.Any())
+        //     {
+        //         // Register handlers with message bus
+        //         // This would typically integrate with the MessageBus's handler registration
+        //         _logger.LogDebug("Registered {Count} message handlers from component {ComponentId}",
+        //             handlers.Count(), component.Id);
+        //     }
+        // }
 
         private void ExposeServices(IPluggableComponent component)
         {
@@ -329,7 +329,7 @@ namespace Conduit.Components
 
                 _components.Clear();
                 _contexts.Clear();
-                _behaviors.Clear();
+                // _behaviors.Clear();
                 _disposed = true;
             }
         }

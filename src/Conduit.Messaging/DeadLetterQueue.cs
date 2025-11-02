@@ -111,9 +111,9 @@ namespace Conduit.Messaging
 
                 var entry = new DeadLetterEntry
                 {
-                    Id = Guid.NewGuid().ToString(),
+                    Id = message.MessageId,
                     Message = message,
-                    MessageType = message.GetType().FullName ?? message.GetType().Name,
+                    MessageType = message.MessageType,
                     Exception = exception,
                     ErrorMessage = exception.Message,
                     StackTrace = exception.StackTrace,
@@ -121,7 +121,7 @@ namespace Conduit.Messaging
                     EnqueuedAt = DateTimeOffset.UtcNow,
                     ExpiresAt = DateTimeOffset.UtcNow.Add(_retentionPeriod),
                     RetryCount = context?.RetryCount ?? 0,
-                    CorrelationId = context?.CorrelationId,
+                    CorrelationId = context?.CorrelationId ?? message.CorrelationId,
                     Headers = message.Headers?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? "") ?? new Dictionary<string, string>()
                 };
 

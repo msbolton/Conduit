@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Conduit.Api;
+using Conduit.Components;
 using Conduit.Metrics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,7 +13,7 @@ namespace Conduit.Metrics;
 /// <summary>
 /// Metrics component for Conduit framework integration.
 /// </summary>
-public class MetricsComponent : IPluggableComponent
+public class MetricsComponent : AbstractPluggableComponent
 {
     private readonly IMetricsCollector _metricsCollector;
     private readonly HealthCheckService _healthCheckService;
@@ -27,7 +28,7 @@ public class MetricsComponent : IPluggableComponent
         MetricsReporter reporter,
         IOptions<MetricsConfiguration> configuration,
         ILogger<MetricsComponent> logger,
-        StartupHealthCheck? startupHealthCheck = null)
+        StartupHealthCheck? startupHealthCheck = null) : base(logger)
     {
         _metricsCollector = metricsCollector;
         _healthCheckService = healthCheckService;
@@ -36,51 +37,36 @@ public class MetricsComponent : IPluggableComponent
         _logger = logger;
         _startupHealthCheck = startupHealthCheck;
 
-        Id = Guid.NewGuid().ToString();
-        Name = "Conduit.Metrics";
-        Version = "0.6.0";
-
+        // Override the default manifest
         Manifest = new ComponentManifest
         {
-            Id = Id,
-            Name = Name,
-            Version = Version,
-            Description = Description,
+            Id = "conduit.metrics",
+            Name = "Conduit.Metrics",
+            Version = "0.6.0",
+            Description = "Metrics and monitoring component for Conduit framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",
             Dependencies = new List<ComponentDependency>(),
             Tags = new HashSet<string> { "metrics", "monitoring", "telemetry", "health-checks" }
         };
-
-        IsolationRequirements = IsolationRequirements.Standard();
     }
 
-    public string Id { get; }
-    public string Name { get; }
-    public string Version { get; }
-    public string Description { get; } = "Metrics and monitoring component for Conduit framework";
-    public ComponentConfiguration? Configuration { get; set; }
-    public ISecurityContext? SecurityContext { get; set; }
 
-    public ComponentManifest Manifest { get; }
-    public IsolationRequirements IsolationRequirements { get; }
-
-    public Task InitializeAsync(ComponentConfiguration configuration, CancellationToken cancellationToken = default)
+    protected override Task OnInitializeAsync(CancellationToken cancellationToken = default)
     {
-        Configuration = configuration;
-        _logger.LogInformation("Metrics component '{Name}' initialized", Name);
+        Logger.LogInformation("Metrics component '{Name}' initialized", Name);
         return Task.CompletedTask;
     }
 
-    public Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
+    public override Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Initializing Metrics component");
+        Logger.LogInformation("Initializing Metrics component");
 
         if (_configuration.Enabled)
         {
-            _logger.LogInformation("Metrics collection enabled with provider: {Provider}", _configuration.Provider);
-            _logger.LogInformation("Prometheus endpoint: {Endpoint}", _configuration.PrometheusEndpoint);
-            _logger.LogInformation("Health check endpoint: {Endpoint}", _configuration.HealthCheckEndpoint);
+            Logger.LogInformation("Metrics collection enabled with provider: {Provider}", _configuration.Provider);
+            Logger.LogInformation("Prometheus endpoint: {Endpoint}", _configuration.PrometheusEndpoint);
+            Logger.LogInformation("Health check endpoint: {Endpoint}", _configuration.HealthCheckEndpoint);
 
             // Record initialization
             _metricsCollector.Increment("component_initializations_total",
@@ -91,14 +77,14 @@ public class MetricsComponent : IPluggableComponent
         // Mark startup as ready
         _startupHealthCheck?.MarkAsReady();
 
-        return Task.CompletedTask;
+        return base.OnAttachAsync(context, cancellationToken);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStartAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting Metrics component");
+        Logger.LogInformation("Starting Metrics component");
 
-        if (_configuration.EnableConsoleExporter && _logger.IsEnabled(LogLevel.Debug))
+        if (_configuration.EnableConsoleExporter && Logger.IsEnabled(LogLevel.Debug))
         {
             _reporter.ReportToConsole();
         }
@@ -106,9 +92,9 @@ public class MetricsComponent : IPluggableComponent
         return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken = default)
+    protected override Task OnStopAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Stopping Metrics component");
+        Logger.LogInformation("Stopping Metrics component");
 
         if (_configuration.EnableConsoleExporter)
         {
@@ -118,9 +104,9 @@ public class MetricsComponent : IPluggableComponent
         return Task.CompletedTask;
     }
 
-    public Task ShutdownAsync(CancellationToken cancellationToken = default)
+    protected override Task OnDisposeAsync()
     {
-        _logger.LogInformation("Shutting down Metrics component");
+        Logger.LogInformation("Shutting down Metrics component");
         return Task.CompletedTask;
     }
 
@@ -140,18 +126,13 @@ public class MetricsComponent : IPluggableComponent
     /// </summary>
     public MetricsReporter GetReporter() => _reporter;
 
-    public Task OnDetachAsync(CancellationToken cancellationToken = default)
+    public override Task OnDetachAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Metrics component '{Name}' detached", Name);
-        return Task.CompletedTask;
+        Logger.LogInformation("Metrics component '{Name}' detached", Name);
+        return base.OnDetachAsync(cancellationToken);
     }
 
-    public IEnumerable<IBehaviorContribution> ContributeBehaviors()
-    {
-        return Array.Empty<IBehaviorContribution>();
-    }
-
-    public IEnumerable<ComponentFeature> ExposeFeatures()
+    public override IEnumerable<ComponentFeature> ExposeFeatures()
     {
         return new[]
         {
@@ -174,7 +155,7 @@ public class MetricsComponent : IPluggableComponent
         };
     }
 
-    public IEnumerable<ServiceContract> ProvideServices()
+    public override IEnumerable<ServiceContract> ProvideServices()
     {
         return new[]
         {
@@ -195,32 +176,12 @@ public class MetricsComponent : IPluggableComponent
         };
     }
 
-    public IEnumerable<MessageHandlerRegistration> RegisterHandlers()
-    {
-        return Array.Empty<MessageHandlerRegistration>();
-    }
-
-    public bool IsCompatibleWith(string coreVersion)
+    public override bool IsCompatibleWith(string coreVersion)
     {
         return Version.CompareTo(coreVersion) >= 0;
     }
 
-    public ComponentState GetState()
-    {
-        return ComponentState.Running;
-    }
-
-    public void OnDetach()
-    {
-        _logger.LogInformation("Metrics component '{Name}' detached (sync)", Name);
-    }
-
-    public Task DisposeAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    public Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
+    public override Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
     {
         var healthData = new Dictionary<string, object>
         {
@@ -233,8 +194,15 @@ public class MetricsComponent : IPluggableComponent
         return Task.FromResult(health);
     }
 
-    public void Dispose()
+    protected override ComponentHealth? PerformHealthCheck()
     {
-        _logger.LogInformation("Metrics component '{Name}' disposed", Name);
+        var healthData = new Dictionary<string, object>
+        {
+            ["ComponentName"] = Name,
+            ["Version"] = Version,
+            ["Enabled"] = _configuration.Enabled
+        };
+
+        return ComponentHealth.Healthy(Id, healthData);
     }
 }

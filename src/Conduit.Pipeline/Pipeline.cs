@@ -21,7 +21,7 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
 {
     internal readonly List<IPipelineStage<object, object>> _stages = new();
     private readonly List<Conduit.Api.IPipelineInterceptor> _interceptors = new();
-    private readonly List<BehaviorContribution> _behaviors = new();
+    private readonly List<Behaviors.BehaviorContribution> _behaviors = new();
     private readonly ConcurrentDictionary<string, (object Result, DateTimeOffset Expiry)> _cache = new();
     private readonly PipelineMetadata _metadata;
     private readonly PipelineConfiguration _configuration;
@@ -179,7 +179,7 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
     }
 
     private BehaviorChain BuildBehaviorChain(
-        List<BehaviorContribution> behaviors,
+        List<Behaviors.BehaviorContribution> behaviors,
         Func<PipelineContext, Task<object?>> terminal)
     {
         // Start with the terminal chain
@@ -480,12 +480,18 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
     /// <inheritdoc />
     public IPipeline<TInput, TOutput> WithRetry(RetryPolicy retryPolicy)
     {
-        var retryBehavior = BehaviorContribution.Create(
-            $"retry-{Guid.NewGuid()}",
-            new DelegatingBehavior(async (context, next) =>
+        var retryBehavior = new Behaviors.BehaviorContribution
+        {
+            Id = $"retry-{Guid.NewGuid()}",
+            Name = "Retry Behavior",
+            Behavior = new DelegatingBehavior(async (context, next) =>
             {
                 return await next.WithRetry(retryPolicy).ProceedAsync(context);
-            }));
+            }),
+            Phase = Behaviors.BehaviorPhase.Processing,
+            Priority = 100,
+            IsEnabled = true
+        };
 
         var newPipeline = new Pipeline<TInput, TOutput>(_metadata, _configuration);
         newPipeline._stages.AddRange(_stages);
@@ -602,7 +608,7 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
         };
     }
 
-    public Pipeline<TInput, TOutput> AddBehavior(BehaviorContribution behavior)
+    public Pipeline<TInput, TOutput> AddBehavior(Behaviors.BehaviorContribution behavior)
     {
         _behaviors.Add(behavior);
         return this;
@@ -627,7 +633,7 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
     /// <summary>
     /// Gets the registered behaviors.
     /// </summary>
-    public IReadOnlyList<BehaviorContribution> GetPipelineBehaviors()
+    public IReadOnlyList<Behaviors.BehaviorContribution> GetPipelineBehaviors()
     {
         return _behaviors.AsReadOnly();
     }
@@ -638,7 +644,7 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
     public void AddBehavior(IBehaviorContribution behavior)
     {
         // Convert IBehaviorContribution to BehaviorContribution if needed
-        if (behavior is BehaviorContribution bc)
+        if (behavior is Behaviors.BehaviorContribution bc)
         {
             _behaviors.Add(bc);
         }
@@ -653,11 +659,14 @@ public class Pipeline<TInput, TOutput> : Conduit.Api.IPipeline<TInput, TOutput>
                 })
                 : throw new InvalidOperationException("Behavior delegate cannot be null");
 
-            var wrapped = new BehaviorContribution
+            var wrapped = new Behaviors.BehaviorContribution
             {
                 Id = behavior.Id,
                 Name = behavior.Name,
+                Description = behavior.Description,
                 Behavior = delegatingBehavior,
+                Phase = (Behaviors.BehaviorPhase)behavior.Phase,
+                Priority = behavior.Priority,
                 IsEnabled = behavior.IsEnabled
             };
             _behaviors.Add(wrapped);

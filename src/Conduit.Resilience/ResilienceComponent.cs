@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Conduit.Api;
+using Conduit.Components;
 using Microsoft.Extensions.Logging;
 
 namespace Conduit.Resilience
@@ -16,37 +17,12 @@ namespace Conduit.Resilience
         "0.1.0",
         Description = "Provides resilience patterns including circuit breaker, retry, bulkhead, timeout, and rate limiting"
     )]
-    public class ResilienceComponent : IPluggableComponent, IDisposable
+    public class ResilienceComponent : AbstractPluggableComponent, IDisposable
     {
         private readonly ILogger<ResilienceComponent>? _logger;
         private ResiliencePolicyRegistry? _policyRegistry;
         private ComponentContext? _componentContext;
-        private ComponentState _state = ComponentState.Uninitialized;
         private bool _disposed;
-
-        /// <inheritdoc/>
-        public string Id { get; } = "conduit.resilience";
-
-        /// <inheritdoc/>
-        public string Name { get; } = "Conduit.Resilience";
-
-        /// <inheritdoc/>
-        public string Version { get; } = "0.1.0";
-
-        /// <inheritdoc/>
-        public string Description { get; } = "Provides resilience patterns including circuit breaker, retry, bulkhead, timeout, and rate limiting";
-
-        /// <inheritdoc/>
-        public ComponentConfiguration? Configuration { get; set; }
-
-        /// <inheritdoc/>
-        public ISecurityContext? SecurityContext { get; set; }
-
-        /// <inheritdoc/>
-        public ComponentManifest Manifest { get; }
-
-        /// <inheritdoc/>
-        public IsolationRequirements IsolationRequirements { get; }
 
         /// <summary>
         /// Gets the policy registry for this component.
@@ -56,27 +32,25 @@ namespace Conduit.Resilience
         /// <summary>
         /// Initializes a new instance of the ResilienceComponent class.
         /// </summary>
-        public ResilienceComponent(ILogger<ResilienceComponent>? logger = null)
+        public ResilienceComponent(ILogger<ResilienceComponent>? logger = null) : base(logger)
         {
             _logger = logger;
 
+            // Override the default manifest
             Manifest = new ComponentManifest
             {
-                Id = Id,
-                Name = Name,
-                Version = Version,
-                Description = Description,
+                Id = "conduit.resilience",
+                Name = "Conduit.Resilience",
+                Version = "0.1.0",
+                Description = "Provides resilience patterns including circuit breaker, retry, bulkhead, timeout, and rate limiting",
                 Author = "Conduit Contributors",
                 MinFrameworkVersion = "0.1.0",
                 Dependencies = new List<ComponentDependency>(),
                 Tags = new HashSet<string> { "resilience", "circuit-breaker", "retry", "bulkhead", "timeout", "rate-limiting" }
             };
-
-            IsolationRequirements = IsolationRequirements.Standard();
         }
 
-        /// <inheritdoc/>
-        public Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
+        public override Task OnAttachAsync(ComponentContext context, CancellationToken cancellationToken = default)
         {
             _componentContext = context;
             _policyRegistry = new ResiliencePolicyRegistry(_logger as ILogger<ResiliencePolicyRegistry>);
@@ -88,42 +62,22 @@ namespace Conduit.Resilience
                 InitializeDefaultPolicies(resilienceConfig);
             }
 
-            _logger?.LogInformation("Resilience component '{Name}' v{Version} attached with {PolicyCount} policies",
+            Logger.LogInformation("Resilience component '{Name}' v{Version} attached with {PolicyCount} policies",
                 Name, Version, _policyRegistry.Count);
 
-            return Task.CompletedTask;
+            return base.OnAttachAsync(context, cancellationToken);
         }
 
-        /// <inheritdoc/>
-        public Task OnDetachAsync(CancellationToken cancellationToken = default)
+        public override Task OnDetachAsync(CancellationToken cancellationToken = default)
         {
             // Dispose any rate limiter policies
-            if (_policyRegistry != null)
-            {
-                foreach (var policyName in _policyRegistry.PolicyNames)
-                {
-                    var policy = _policyRegistry.GetPolicy(policyName);
-                    if (policy is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
-                }
-            }
+            DisposePolicies();
 
-            _logger?.LogInformation("Resilience component '{Name}' detached", Name);
-            return Task.CompletedTask;
+            Logger.LogInformation("Resilience component '{Name}' detached", Name);
+            return base.OnDetachAsync(cancellationToken);
         }
 
-        /// <inheritdoc/>
-        public IEnumerable<IBehaviorContribution> ContributeBehaviors()
-        {
-            // Resilience policies are typically applied explicitly via the registry
-            // rather than as automatic pipeline behaviors
-            return Array.Empty<IBehaviorContribution>();
-        }
-
-        /// <inheritdoc/>
-        public IEnumerable<ComponentFeature> ExposeFeatures()
+        public override IEnumerable<ComponentFeature> ExposeFeatures()
         {
             return new[]
             {
@@ -170,8 +124,7 @@ namespace Conduit.Resilience
             };
         }
 
-        /// <inheritdoc/>
-        public IEnumerable<ServiceContract> ProvideServices()
+        public override IEnumerable<ServiceContract> ProvideServices()
         {
             return new[]
             {
@@ -185,15 +138,7 @@ namespace Conduit.Resilience
             };
         }
 
-        /// <inheritdoc/>
-        public IEnumerable<MessageHandlerRegistration> RegisterHandlers()
-        {
-            // Resilience component doesn't register message handlers
-            return Array.Empty<MessageHandlerRegistration>();
-        }
-
-        /// <inheritdoc/>
-        public bool IsCompatibleWith(string coreVersion)
+        public override bool IsCompatibleWith(string coreVersion)
         {
             // Simple version compatibility check - in production, use proper semantic versioning
             return Version.CompareTo(coreVersion) >= 0;
@@ -304,89 +249,86 @@ namespace Conduit.Resilience
             _logger?.LogInformation("Initialized {Count} default resilience policies", _policyRegistry?.Count ?? 0);
         }
 
-        /// <inheritdoc/>
-        public ComponentState GetState() => _state;
-
-        /// <inheritdoc/>
-        public Task StartAsync(CancellationToken cancellationToken = default)
+        protected override Task OnStartAsync(CancellationToken cancellationToken = default)
         {
-            _state = ComponentState.Running;
-            _logger?.LogInformation("Resilience component '{Name}' started", Name);
+            Logger.LogInformation("Resilience component '{Name}' started", Name);
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
-        public Task StopAsync(CancellationToken cancellationToken = default)
+        protected override Task OnStopAsync(CancellationToken cancellationToken = default)
         {
-            _state = ComponentState.Stopped;
-            _logger?.LogInformation("Resilience component '{Name}' stopped", Name);
+            Logger.LogInformation("Resilience component '{Name}' stopped", Name);
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
-        public Task InitializeAsync(ComponentConfiguration configuration, CancellationToken cancellationToken = default)
+        protected override Task OnInitializeAsync(CancellationToken cancellationToken = default)
         {
-            Configuration = configuration;
-            _state = ComponentState.Initialized;
-            _logger?.LogInformation("Resilience component '{Name}' initialized", Name);
+            Logger.LogInformation("Resilience component '{Name}' initialized", Name);
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
-        public void OnDetach()
-        {
-            // Synchronous cleanup if needed
-            _logger?.LogInformation("Resilience component '{Name}' detached (sync)", Name);
-        }
-
-        /// <inheritdoc/>
-        public Task DisposeAsync()
+        protected override Task OnDisposeAsync()
         {
             if (!_disposed)
             {
-                Dispose();
+                DisposePolicies();
                 _disposed = true;
+                Logger.LogInformation("Resilience component '{Name}' disposed", Name);
             }
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
-        public Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
+        public override Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
         {
-            var isHealthy = _state == ComponentState.Running;
+            var currentState = GetState();
+            var isHealthy = currentState == ComponentState.Running;
             var healthData = new Dictionary<string, object>
             {
-                ["State"] = _state.ToString(),
+                ["State"] = currentState.ToString(),
                 ["PolicyCount"] = _policyRegistry?.Count ?? 0
             };
 
             var health = isHealthy
                 ? ComponentHealth.Healthy(Id, healthData)
-                : ComponentHealth.Degraded(Id, $"Component state: {_state}", healthData);
+                : ComponentHealth.Degraded(Id, $"Component state: {currentState}", healthData);
 
             return Task.FromResult(health);
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
+        protected override void CollectMetrics(ComponentMetrics metrics)
         {
-            if (!_disposed)
+            metrics.SetCounter("policies_count", _policyRegistry?.Count ?? 0);
+            metrics.SetGauge("component_state", (int)GetState());
+        }
+
+        private void DisposePolicies()
+        {
+            if (_policyRegistry != null)
             {
-                // Dispose any rate limiter policies
-                if (_policyRegistry != null)
+                foreach (var policyName in _policyRegistry.PolicyNames)
                 {
-                    foreach (var policyName in _policyRegistry.PolicyNames)
+                    var policy = _policyRegistry.GetPolicy(policyName);
+                    if (policy is IDisposable disposable)
                     {
-                        var policy = _policyRegistry.GetPolicy(policyName);
-                        if (policy is IDisposable disposable)
-                        {
-                            disposable.Dispose();
-                        }
+                        disposable.Dispose();
                     }
                 }
-                _disposed = true;
-                _logger?.LogInformation("Resilience component '{Name}' disposed", Name);
             }
+        }
+
+        protected override ComponentHealth? PerformHealthCheck()
+        {
+            var currentState = GetState();
+            var isHealthy = currentState == ComponentState.Running;
+            var healthData = new Dictionary<string, object>
+            {
+                ["State"] = currentState.ToString(),
+                ["PolicyCount"] = _policyRegistry?.Count ?? 0
+            };
+
+            return isHealthy
+                ? ComponentHealth.Healthy(Id, healthData)
+                : ComponentHealth.Degraded(Id, $"Component state: {currentState}", healthData);
         }
     }
 }
