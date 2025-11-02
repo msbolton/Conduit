@@ -1,0 +1,58 @@
+using System;
+using System.Threading.Tasks;
+using Conduit.Application;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace MyConduitApp
+{
+    /// <summary>
+    /// Application entry point.
+    /// </summary>
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var host = ConduitHostBuilder
+                .CreateDefaultBuilder(args)
+                .UseEnvironment("Development")
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true)
+                .AddEnvironmentVariables("CONDUIT_")
+                .ConfigureConduit(config =>
+                {
+                    config.ApplicationName = "My Conduit Application";
+                    config.Version = "1.0.0";
+                    config.Features["EnableMetrics"] = true;
+                    config.Features["EnableHealthChecks"] = true;
+                })
+                .ConfigureServices(services =>
+                {
+                    // Add your custom services here
+                    // services.AddTransient<IMyService, MyService>();
+
+                    // Add command handlers
+                    // services.AddCommandHandler<MyCommand, MyResponse, MyCommandHandler>();
+
+                    // Add event handlers
+                    // services.AddEventHandler<MyEvent, MyEventHandler>();
+
+                    // Add query handlers
+                    // services.AddQueryHandler<MyQuery, MyResult, MyQueryHandler>();
+                })
+                .ConfigureLogging((context, logging) =>
+                {
+                    logging.AddConsole();
+                    logging.AddDebug();
+
+                    if (context.HostingEnvironment.IsDevelopment())
+                    {
+                        logging.SetMinimumLevel(LogLevel.Debug);
+                    }
+                })
+                .Build();
+
+            await host.RunAsync();
+        }
+    }
+}

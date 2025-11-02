@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Conduit.Api</PackageId>
+    <Version>0.9.0-alpha</Version>
+    <Authors>Conduit Contributors</Authors>
+    <Description>Core interfaces and contracts for the Conduit messaging framework</Description>
+    <PackageTags>messaging;cqrs;pipeline;plugin;microservices</PackageTags>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

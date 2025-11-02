@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Conduit.Serialization</PackageId>
+    <Version>0.9.0-alpha</Version>
+    <Authors>Conduit Contributors</Authors>
+    <Description>Multi-format serialization support for the Conduit messaging framework</Description>
+    <PackageTags>serialization;json;msgpack;protobuf;formats</PackageTags>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Conduit.Api\Conduit.Api.csproj" />
+    <ProjectReference Include="..\Conduit.Common\Conduit.Common.csproj" />
+    <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="MessagePack" Version="2.5.187" />
+    <PackageReference Include="MessagePack.Annotations" Version="2.5.187" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
