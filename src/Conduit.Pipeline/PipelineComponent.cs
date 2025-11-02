@@ -33,7 +33,7 @@ public class PipelineComponent : AbstractPluggableComponent
         {
             Id = "conduit.pipeline",
             Name = "Conduit.Pipeline",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Pipeline processing and composition for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

@@ -34,7 +34,7 @@ public class UdpTransportComponent : AbstractPluggableComponent
         {
             Id = "conduit.transport.udp",
             Name = "Conduit.Transport.UDP",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "UDP network transport with multicast and broadcast support for fast, connectionless message transmission in the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

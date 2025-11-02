@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Components</PackageId>
-    <Version>0.8.2</Version>
+    <Version>0.9.0-alpha</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Component system and pluggable component implementations for the Conduit messaging framework</Description>
     <PackageTags>components;plugins;modules;extensibility</PackageTags>

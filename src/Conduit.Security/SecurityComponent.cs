@@ -39,7 +39,7 @@ public class SecurityComponent : AbstractPluggableComponent
         {
             Id = "conduit.security",
             Name = "Conduit.Security",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Authentication, authorization, and encryption services for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

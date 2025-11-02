@@ -34,7 +34,7 @@ public class ActiveMqTransportComponent : AbstractPluggableComponent
         {
             Id = "conduit.transport.activemq",
             Name = "Conduit.Transport.ActiveMQ",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "ActiveMQ Artemis message broker transport with AMQP 1.0 support for enterprise-grade messaging in the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

@@ -42,7 +42,7 @@ public class MessagingComponent : AbstractPluggableComponent
         {
             Id = "conduit.messaging",
             Name = "Conduit.Messaging",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Message bus and routing implementation for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

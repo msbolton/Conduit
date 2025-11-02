@@ -34,7 +34,7 @@ public class TcpTransportComponent : AbstractPluggableComponent
         {
             Id = "conduit.transport.tcp",
             Name = "Conduit.Transport.TCP",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "TCP/Socket network transport for reliable message transmission in the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

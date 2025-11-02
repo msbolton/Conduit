@@ -37,7 +37,7 @@ public class SagaComponent : AbstractPluggableComponent
         {
             Id = "conduit.saga",
             Name = "Conduit.Saga",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Long-running process coordination and saga orchestration for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

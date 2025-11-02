@@ -34,7 +34,7 @@ public class PersistenceComponent : AbstractPluggableComponent
         {
             Id = "conduit.persistence",
             Name = "Conduit.Persistence",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Data access, repository patterns, and transaction management for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

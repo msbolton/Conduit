@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Api</PackageId>
-    <Version>0.8.2</Version>
+    <Version>0.9.0-alpha</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Core interfaces and contracts for the Conduit messaging framework</Description>
     <PackageTags>messaging;cqrs;pipeline;plugin;microservices</PackageTags>

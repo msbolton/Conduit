@@ -43,7 +43,7 @@ public class GatewayComponent : AbstractPluggableComponent
         {
             Id = "conduit.gateway",
             Name = "Conduit.Gateway",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "API gateway with routing, load balancing, and rate limiting for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",

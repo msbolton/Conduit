@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Pipeline</PackageId>
-    <Version>0.8.2</Version>
+    <Version>0.9.0-alpha</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Pipeline processing and composition for the Conduit messaging framework</Description>
     <PackageTags>messaging;pipeline;behaviors;composition</PackageTags>

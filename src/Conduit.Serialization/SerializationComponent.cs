@@ -34,7 +34,7 @@ public class SerializationComponent : AbstractPluggableComponent
         {
             Id = "conduit.serialization",
             Name = "Conduit.Serialization",
-            Version = "0.8.2",
+            Version = "0.9.0-alpha",
             Description = "Multi-format serialization support for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",
