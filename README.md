@@ -1,6 +1,6 @@
 # Conduit Framework for .NET
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.9.0--alpha-blue.svg)](VERSION)
 [![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
