@@ -1,0 +1,25 @@
+name: "Conduit CodeQL Configuration"
+
+# Disable default queries and use custom query suites
+disable-default-queries: false
+
+# Additional queries to run
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+
+# Paths to analyze
+paths:
+  - src/
+  - tests/
+
+# Paths to ignore
+paths-ignore:
+  - "**/*.Designer.cs"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "packages/**"
+  - "**/packages.config"
+
+# Build configuration
+build-mode: none

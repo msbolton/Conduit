@@ -1,0 +1,44 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Common Package Information -->
+    <Company>Conduit Contributors</Company>
+    <Product>Conduit Framework</Product>
+    <Copyright>Copyright © 2024 Conduit Contributors</Copyright>
+    <Authors>Conduit Contributors</Authors>
+
+    <!-- NuGet Package Metadata -->
+    <PackageProjectUrl>https://github.com/msbolton/Conduit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/msbolton/Conduit</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Package Release Information -->
+    <PackageReleaseNotes>https://github.com/msbolton/Conduit/releases/tag/v0.9.0-alpha</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <!-- Development and Build Settings -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+    <!-- Common Package Tags -->
+    <CommonPackageTags>messaging;cqrs;microservices;dotnet;framework;components;plugin;architecture</CommonPackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Include common files in packages -->
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Source Link for debugging -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+  </ItemGroup>
+
+</Project>

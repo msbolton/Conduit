@@ -1,0 +1,82 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Check for outdated packages
+      run: |
+        echo "🔍 Checking for outdated packages..."
+        dotnet list package --outdated --format json > outdated-packages.json
+
+        if [[ -s outdated-packages.json ]]; then
+          echo "📦 Found outdated packages:"
+          cat outdated-packages.json
+        else
+          echo "✅ All packages are up to date"
+        fi
+
+    - name: Security vulnerability scan
+      run: |
+        echo "🔒 Scanning for security vulnerabilities..."
+        dotnet list package --vulnerable --include-transitive
+
+    - name: Create issue for outdated packages
+      if: hashFiles('outdated-packages.json') != ''
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+
+          try {
+            const outdatedData = JSON.parse(fs.readFileSync('outdated-packages.json', 'utf8'));
+
+            if (outdatedData.projects && outdatedData.projects.length > 0) {
+              let issueBody = '## 📦 Outdated Package Dependencies\n\n';
+              issueBody += 'The following packages have newer versions available:\n\n';
+
+              outdatedData.projects.forEach(project => {
+                if (project.frameworks) {
+                  project.frameworks.forEach(framework => {
+                    if (framework.topLevelPackages) {
+                      issueBody += `### ${project.path}\n\n`;
+                      framework.topLevelPackages.forEach(pkg => {
+                        issueBody += `- **${pkg.id}**: ${pkg.resolvedVersion} → ${pkg.latestVersion}\n`;
+                      });
+                      issueBody += '\n';
+                    }
+                  });
+                }
+              });
+
+              issueBody += '\n---\n*This issue was automatically created by the dependency update workflow.*';
+
+              github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '📦 Package Dependencies Update Available',
+                body: issueBody,
+                labels: ['dependencies', 'automated']
+              });
+            }
+          } catch (error) {
+            console.log('No outdated packages or error parsing data:', error);
+          }

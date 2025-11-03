@@ -1,0 +1,118 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  BUILD_CONFIGURATION: 'Release'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    outputs:
+      test-success: ${{ steps.test-results.outputs.success }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Required for GitVersion
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+    - name: Run tests
+      run: |
+        dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} \
+          --no-build \
+          --verbosity normal \
+          --logger trx \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./test-results
+
+    - name: Test results
+      id: test-results
+      run: |
+        if [ $? -eq 0 ]; then
+          echo "success=true" >> $GITHUB_OUTPUT
+          echo "✅ All tests passed"
+        else
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "❌ Tests failed"
+          exit 1
+        fi
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: ./test-results
+
+    - name: Code Coverage Report
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: ./test-results/**/coverage.cobertura.xml
+        badge: true
+        fail_below_min: false
+        format: markdown
+        hide_branch_rate: false
+        hide_complexity: true
+        indicators: true
+        output: both
+        thresholds: '60 80'
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: needs.build-and-test.outputs.test-success == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Security audit
+      run: dotnet list package --vulnerable --include-transitive
+
+    - name: License check
+      run: dotnet list package --include-transitive --format json > packages.json
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: always()
+
+    steps:
+    - name: Quality Gate
+      run: |
+        if [[ "${{ needs.build-and-test.result }}" == "success" && "${{ needs.security-scan.result }}" == "success" ]]; then
+          echo "✅ Quality gate passed - Ready for release"
+        else
+          echo "❌ Quality gate failed"
+          exit 1
+        fi
