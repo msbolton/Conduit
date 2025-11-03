@@ -20,7 +20,7 @@ namespace Conduit.Core.Discovery.Strategies
     {
         private readonly ILogger<DirectoryDiscoveryStrategy>? _logger;
         private readonly List<string> _pluginDirectories;
-        private readonly Dictionary<string, PluginLoadContext> _loadContexts;
+        private readonly Dictionary<string, Conduit.Core.PluginLoadContext> _loadContexts;
         private readonly ComponentValidator _validator;
         private ComponentDiscoveryConfiguration _configuration;
         private bool _disposed;
@@ -48,7 +48,7 @@ namespace Conduit.Core.Discovery.Strategies
         /// <summary>
         /// Gets the loaded plugin contexts.
         /// </summary>
-        protected IReadOnlyDictionary<string, PluginLoadContext> LoadContexts => _loadContexts;
+        protected IReadOnlyDictionary<string, Conduit.Core.PluginLoadContext> LoadContexts => _loadContexts;
 
         /// <summary>
         /// Initializes a new instance of the DirectoryDiscoveryStrategy class.
@@ -58,7 +58,7 @@ namespace Conduit.Core.Discovery.Strategies
         {
             _logger = logger;
             _pluginDirectories = new List<string>();
-            _loadContexts = new Dictionary<string, PluginLoadContext>();
+            _loadContexts = new Dictionary<string, Conduit.Core.PluginLoadContext>();
             _validator = new ComponentValidator();
             _configuration = new ComponentDiscoveryConfiguration();
         }
@@ -320,11 +320,14 @@ namespace Conduit.Core.Discovery.Strategies
         /// <summary>
         /// Creates an isolated plugin load context.
         /// </summary>
-        protected virtual PluginLoadContext CreatePluginLoadContext(string pluginName, string assemblyPath)
+        protected virtual Conduit.Core.PluginLoadContext CreatePluginLoadContext(string pluginName, string assemblyPath)
         {
             var isolation = GetDefaultIsolation();
-            // Temporarily use AssemblyLoadContext.Default until PluginLoadContext constructor is resolved
-            throw new NotImplementedException("PluginLoadContext constructor needs to be fixed");
+            return new Conduit.Core.PluginLoadContext(
+                pluginName,
+                assemblyPath,
+                isolation,
+                AssemblyLoadContext.Default);
         }
 
         /// <summary>
