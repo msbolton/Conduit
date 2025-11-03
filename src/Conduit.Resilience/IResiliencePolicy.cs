@@ -97,6 +97,26 @@ namespace Conduit.Resilience
         public long RetriedExecutions { get; set; }
 
         /// <summary>
+        /// Gets or sets the number of fallback executions.
+        /// </summary>
+        public long FallbackExecutions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of failed fallback executions.
+        /// </summary>
+        public long FailedFallbackExecutions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of compensation executions.
+        /// </summary>
+        public long CompensationExecutions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of failed compensation executions.
+        /// </summary>
+        public long FailedCompensationExecutions { get; set; }
+
+        /// <summary>
         /// Gets or sets the average execution time in milliseconds.
         /// </summary>
         public double AverageExecutionTimeMs { get; set; }
@@ -118,6 +138,20 @@ namespace Conduit.Resilience
         /// </summary>
         public double SuccessRate => TotalExecutions > 0
             ? (double)SuccessfulExecutions / TotalExecutions
+            : 0.0;
+
+        /// <summary>
+        /// Calculates the fallback rate.
+        /// </summary>
+        public double FallbackRate => TotalExecutions > 0
+            ? (double)FallbackExecutions / TotalExecutions
+            : 0.0;
+
+        /// <summary>
+        /// Calculates the compensation rate.
+        /// </summary>
+        public double CompensationRate => TotalExecutions > 0
+            ? (double)CompensationExecutions / TotalExecutions
             : 0.0;
     }
 }

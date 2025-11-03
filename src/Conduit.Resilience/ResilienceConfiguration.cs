@@ -243,6 +243,8 @@ namespace Conduit.Resilience
         Retry,
         Bulkhead,
         Timeout,
-        RateLimiter
+        RateLimiter,
+        Fallback,
+        CompensatingAction
     }
 }

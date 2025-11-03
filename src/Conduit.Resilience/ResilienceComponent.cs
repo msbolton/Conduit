@@ -120,6 +120,38 @@ namespace Conduit.Resilience
                     Description = "Rate limiting pattern using sliding window algorithm",
                     Version = Version,
                     IsEnabledByDefault = true
+                },
+                new ComponentFeature
+                {
+                    Id = "Fallback",
+                    Name = "Fallback",
+                    Description = "Fallback pattern for graceful degradation",
+                    Version = Version,
+                    IsEnabledByDefault = true
+                },
+                new ComponentFeature
+                {
+                    Id = "CompensatingAction",
+                    Name = "CompensatingAction",
+                    Description = "Compensating action pattern for maintaining consistency",
+                    Version = Version,
+                    IsEnabledByDefault = true
+                },
+                new ComponentFeature
+                {
+                    Id = "ErrorHandling",
+                    Name = "ErrorHandling",
+                    Description = "Enhanced error handling and correlation",
+                    Version = Version,
+                    IsEnabledByDefault = true
+                },
+                new ComponentFeature
+                {
+                    Id = "HealthMonitoring",
+                    Name = "HealthMonitoring",
+                    Description = "System health monitoring and alerting",
+                    Version = Version,
+                    IsEnabledByDefault = true
                 }
             };
         }
@@ -215,6 +247,36 @@ namespace Conduit.Resilience
             ResilienceConfiguration.RateLimiterConfig config)
         {
             var policy = new RateLimiterPolicy(name, config, _logger as ILogger<RateLimiterPolicy>);
+            _policyRegistry?.AddPolicy(policy);
+            return policy;
+        }
+
+        /// <summary>
+        /// Creates a fallback policy and adds it to the registry.
+        /// </summary>
+        /// <param name="name">The policy name</param>
+        /// <param name="config">The fallback configuration</param>
+        /// <returns>The created policy</returns>
+        public ErrorHandling.FallbackPolicy CreateFallbackPolicy(
+            string name,
+            ErrorHandling.FallbackConfiguration config)
+        {
+            var policy = new ErrorHandling.FallbackPolicy(name, config, _logger as ILogger<ErrorHandling.FallbackPolicy>);
+            _policyRegistry?.AddPolicy(policy);
+            return policy;
+        }
+
+        /// <summary>
+        /// Creates a compensating action policy and adds it to the registry.
+        /// </summary>
+        /// <param name="name">The policy name</param>
+        /// <param name="config">The compensating action configuration</param>
+        /// <returns>The created policy</returns>
+        public ErrorHandling.CompensatingActionPolicy CreateCompensatingActionPolicy(
+            string name,
+            ErrorHandling.CompensatingActionConfiguration config)
+        {
+            var policy = new ErrorHandling.CompensatingActionPolicy(name, config, _logger as ILogger<ErrorHandling.CompensatingActionPolicy>);
             _policyRegistry?.AddPolicy(policy);
             return policy;
         }
