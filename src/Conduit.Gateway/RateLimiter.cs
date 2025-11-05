@@ -10,7 +10,7 @@ namespace Conduit.Gateway
     /// </summary>
     public class RateLimiter
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<RateLimiter>? _logger;
         private readonly ConcurrentDictionary<string, TokenBucket> _buckets;
         private readonly int _defaultCapacity;
         private readonly double _defaultRefillRate;
@@ -20,9 +20,9 @@ namespace Conduit.Gateway
         /// </summary>
         /// <param name="logger">The logger instance</param>
         /// <param name="defaultRateLimit">The default rate limit (requests per second)</param>
-        public RateLimiter(ILogger logger, int defaultRateLimit = 100)
+        public RateLimiter(ILogger<RateLimiter>? logger = null, int defaultRateLimit = 100)
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
             _buckets = new ConcurrentDictionary<string, TokenBucket>();
             _defaultCapacity = defaultRateLimit;
             _defaultRefillRate = defaultRateLimit; // Refill at the same rate
@@ -55,7 +55,7 @@ namespace Conduit.Gateway
 
             if (!allowed)
             {
-                _logger.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
+                _logger?.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
             }
 
             return allowed;
@@ -89,7 +89,7 @@ namespace Conduit.Gateway
         public void Reset(string clientId)
         {
             _buckets.TryRemove(clientId, out _);
-            _logger.LogInformation("Reset rate limit for client {ClientId}", clientId);
+            _logger?.LogInformation("Reset rate limit for client {ClientId}", clientId);
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Conduit.Gateway
         public void ResetAll()
         {
             _buckets.Clear();
-            _logger.LogInformation("Reset all rate limits");
+            _logger?.LogInformation("Reset all rate limits");
         }
     }
 

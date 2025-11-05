@@ -26,12 +26,18 @@
     <ProjectReference Include="..\Conduit.Common\Conduit.Common.csproj" />
     <ProjectReference Include="..\Conduit.Messaging\Conduit.Messaging.csproj" />
     <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
+    <ProjectReference Include="..\Conduit.Transports.Core\Conduit.Transports.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
-    <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Legacy\**" />
+    <EmbeddedResource Remove="Legacy\**" />
+    <None Remove="Legacy\**" />
   </ItemGroup>
 
 </Project>

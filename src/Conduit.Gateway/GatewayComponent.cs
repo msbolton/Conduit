@@ -6,35 +6,27 @@ using System.Threading.Tasks;
 using Conduit.Api;
 using Conduit.Components;
 using Conduit.Gateway;
+using Conduit.Messaging;
 using Microsoft.Extensions.Logging;
 
 namespace Conduit.Gateway;
 
 /// <summary>
 /// Gateway component for Conduit framework integration.
-/// Manages API gateway, routing, load balancing, and rate limiting.
+/// Manages network gateway, connection routing, and transport management.
 /// </summary>
 public class GatewayComponent : AbstractPluggableComponent
 {
-    private readonly ApiGateway _apiGateway;
-    private readonly RouteManager _routeManager;
-    private readonly LoadBalancer _loadBalancer;
-    private readonly RateLimiter _rateLimiter;
+    private readonly Gateway _gateway;
     private readonly GatewayConfiguration _configuration;
     private readonly ILogger<GatewayComponent> _logger;
 
     public GatewayComponent(
-        ApiGateway apiGateway,
-        RouteManager routeManager,
-        LoadBalancer loadBalancer,
-        RateLimiter rateLimiter,
+        Gateway gateway,
         GatewayConfiguration configuration,
         ILogger<GatewayComponent> logger) : base(logger)
     {
-        _apiGateway = apiGateway ?? throw new ArgumentNullException(nameof(apiGateway));
-        _routeManager = routeManager ?? throw new ArgumentNullException(nameof(routeManager));
-        _loadBalancer = loadBalancer ?? throw new ArgumentNullException(nameof(loadBalancer));
-        _rateLimiter = rateLimiter ?? throw new ArgumentNullException(nameof(rateLimiter));
+        _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger;
 
@@ -43,12 +35,12 @@ public class GatewayComponent : AbstractPluggableComponent
         {
             Id = "conduit.gateway",
             Name = "Conduit.Gateway",
-            Version = "0.9.0-alpha",
-            Description = "API gateway with routing, load balancing, and rate limiting for the Conduit messaging framework",
+            Version = "1.0.0-alpha",
+            Description = "Network gateway with connection routing, transport management, and low-level socket handling for the Conduit messaging framework",
             Author = "Conduit Contributors",
             MinFrameworkVersion = "0.1.0",
             Dependencies = new List<ComponentDependency>(),
-            Tags = new HashSet<string> { "gateway", "routing", "load-balancing", "rate-limiting", "proxy", "api-gateway" }
+            Tags = new HashSet<string> { "gateway", "networking", "routing", "transports", "connections", "sockets" }
         };
     }
 
@@ -62,25 +54,26 @@ public class GatewayComponent : AbstractPluggableComponent
     {
         Logger.LogInformation("Gateway component '{Name}' starting", Name);
 
-        // Start the API gateway
-        await _apiGateway.StartAsync(cancellationToken);
+        // Start the gateway
+        await _gateway.StartAsync(cancellationToken);
 
-        Logger.LogInformation("Gateway component '{Name}' started on {Host}:{Port} with {RouteCount} routes",
-            Name, _configuration.Host, _configuration.Port, _routeManager.GetAllRoutes().Count());
+        var stats = _gateway.GetStatistics();
+        Logger.LogInformation("Gateway component '{Name}' started with {ServerBindings} server bindings, {ClientEndpoints} client endpoints, {RegisteredTransports} transports, and {RouteCount} routes",
+            Name, stats.ServerBindings, stats.ClientEndpoints, stats.RegisteredTransports, stats.RoutingStatistics?.TotalRoutes ?? 0);
     }
 
     protected override async Task OnStopAsync(CancellationToken cancellationToken = default)
     {
         Logger.LogInformation("Gateway component '{Name}' stopping", Name);
 
-        // Stop the API gateway
+        // Stop the gateway
         try
         {
-            await _apiGateway.StopAsync(cancellationToken);
+            await _gateway.StopAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error stopping API gateway");
+            Logger.LogWarning(ex, "Error stopping gateway");
         }
 
         Logger.LogInformation("Gateway component '{Name}' stopped", Name);
@@ -90,14 +83,14 @@ public class GatewayComponent : AbstractPluggableComponent
     {
         Logger.LogInformation("Gateway component '{Name}' disposing", Name);
 
-        // Dispose the API gateway
+        // Dispose the gateway
         try
         {
-            _apiGateway?.Dispose();
+            _gateway?.Dispose();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Error disposing API gateway");
+            Logger.LogWarning(ex, "Error disposing gateway");
         }
 
         Logger.LogInformation("Gateway component '{Name}' disposed", Name);
@@ -110,33 +103,41 @@ public class GatewayComponent : AbstractPluggableComponent
         {
             new ComponentFeature
             {
-                Id = "ApiGateway",
-                Name = "API Gateway",
-                Description = "HTTP API gateway with request forwarding and response handling",
+                Id = "NetworkGateway",
+                Name = "Network Gateway",
+                Description = "Low-level network gateway with socket management and connection routing",
                 Version = Version,
                 IsEnabledByDefault = true
             },
             new ComponentFeature
             {
-                Id = "RouteManagement",
-                Name = "Route Management",
-                Description = "Dynamic route configuration and path matching with parameters",
+                Id = "ConnectionManagement",
+                Name = "Connection Management",
+                Description = "Connection tracking, pooling, and lifecycle management",
+                Version = Version,
+                IsEnabledByDefault = _configuration.EnableConnectionTracking
+            },
+            new ComponentFeature
+            {
+                Id = "RoutingTable",
+                Name = "Routing Table",
+                Description = "Bidirectional routing with priority-based rule evaluation",
                 Version = Version,
                 IsEnabledByDefault = true
             },
             new ComponentFeature
             {
-                Id = "LoadBalancing",
-                Name = "Load Balancing",
-                Description = "Multiple load balancing strategies (round-robin, weighted, least-connections)",
+                Id = "TransportRegistry",
+                Name = "Transport Registry",
+                Description = "Transport registration and lifecycle management",
                 Version = Version,
                 IsEnabledByDefault = true
             },
             new ComponentFeature
             {
-                Id = "RateLimiting",
-                Name = "Rate Limiting",
-                Description = "Per-client rate limiting with configurable limits and windows",
+                Id = "SocketManager",
+                Name = "Socket Manager",
+                Description = "Low-level socket operations and port binding",
                 Version = Version,
                 IsEnabledByDefault = true
             },
@@ -144,17 +145,9 @@ public class GatewayComponent : AbstractPluggableComponent
             {
                 Id = "GatewayMetrics",
                 Name = "Gateway Metrics",
-                Description = "Request metrics, response times, and success rates",
+                Description = "Connection metrics, routing statistics, and transport health",
                 Version = Version,
                 IsEnabledByDefault = _configuration.EnableMetrics
-            },
-            new ComponentFeature
-            {
-                Id = "UpstreamHealthChecks",
-                Name = "Upstream Health Checks",
-                Description = "Health monitoring and circuit breaker for upstream services",
-                Version = Version,
-                IsEnabledByDefault = true
             }
         };
     }
@@ -165,31 +158,31 @@ public class GatewayComponent : AbstractPluggableComponent
         {
             new ServiceContract
             {
-                ServiceType = typeof(ApiGateway),
-                ImplementationType = _apiGateway.GetType(),
+                ServiceType = typeof(Gateway),
+                ImplementationType = _gateway.GetType(),
                 Lifetime = ServiceLifetime.Singleton,
-                Factory = _ => _apiGateway
+                Factory = _ => _gateway
             },
             new ServiceContract
             {
-                ServiceType = typeof(RouteManager),
-                ImplementationType = _routeManager.GetType(),
+                ServiceType = typeof(RoutingTable),
+                ImplementationType = _gateway.RoutingTable.GetType(),
                 Lifetime = ServiceLifetime.Singleton,
-                Factory = _ => _routeManager
+                Factory = _ => _gateway.RoutingTable
             },
             new ServiceContract
             {
-                ServiceType = typeof(LoadBalancer),
-                ImplementationType = _loadBalancer.GetType(),
+                ServiceType = typeof(ConnectionTable),
+                ImplementationType = _gateway.ConnectionTable.GetType(),
                 Lifetime = ServiceLifetime.Singleton,
-                Factory = _ => _loadBalancer
+                Factory = _ => _gateway.ConnectionTable
             },
             new ServiceContract
             {
-                ServiceType = typeof(RateLimiter),
-                ImplementationType = _rateLimiter.GetType(),
+                ServiceType = typeof(TransportRegistry),
+                ImplementationType = _gateway.TransportRegistry.GetType(),
                 Lifetime = ServiceLifetime.Singleton,
-                Factory = _ => _rateLimiter
+                Factory = _ => _gateway.TransportRegistry
             },
             new ServiceContract
             {
@@ -203,110 +196,136 @@ public class GatewayComponent : AbstractPluggableComponent
 
     public override Task<ComponentHealth> CheckHealth(CancellationToken cancellationToken = default)
     {
-        var gatewayHealthy = _apiGateway != null;
-        var routeManagerHealthy = _routeManager != null;
-        var loadBalancerHealthy = _loadBalancer != null;
-        var rateLimiterHealthy = _rateLimiter != null;
+        var gatewayHealthy = _gateway != null;
+        var isRunning = _gateway?.IsRunning ?? false;
+        var stats = _gateway?.GetStatistics();
 
-        var routeCount = _routeManager?.GetAllRoutes().Count() ?? 0;
-        var isHealthy = gatewayHealthy && routeManagerHealthy && loadBalancerHealthy && rateLimiterHealthy;
+        var isHealthy = gatewayHealthy && isRunning;
 
         var healthData = new Dictionary<string, object>
         {
             ["ComponentName"] = Name,
             ["Version"] = Version,
-            ["ApiGateway"] = gatewayHealthy ? "Available" : "Unavailable",
-            ["RouteManager"] = routeManagerHealthy ? "Available" : "Unavailable",
-            ["LoadBalancer"] = loadBalancerHealthy ? "Available" : "Unavailable",
-            ["RateLimiter"] = rateLimiterHealthy ? "Available" : "Unavailable",
-            ["RouteCount"] = routeCount,
-            ["Host"] = _configuration?.Host ?? "Unknown",
-            ["Port"] = _configuration?.Port ?? 0,
-            ["EnableRateLimiting"] = _configuration?.EnableRateLimiting ?? false,
+            ["Gateway"] = gatewayHealthy ? "Available" : "Unavailable",
+            ["IsRunning"] = isRunning,
+            ["ServerBindings"] = stats?.ServerBindings ?? 0,
+            ["ClientEndpoints"] = stats?.ClientEndpoints ?? 0,
+            ["RegisteredTransports"] = stats?.RegisteredTransports ?? 0,
+            ["ActiveConnections"] = stats?.ConnectionStatistics?.TotalConnections ?? 0,
+            ["RouteCount"] = stats?.RoutingStatistics?.TotalRoutes ?? 0,
+            ["BoundPorts"] = stats?.BoundPorts ?? Array.Empty<int>(),
+            ["EnableConnectionTracking"] = _configuration?.EnableConnectionTracking ?? false,
             ["EnableMetrics"] = _configuration?.EnableMetrics ?? false
         };
 
         var health = isHealthy
             ? ComponentHealth.Healthy(Id, healthData)
-            : ComponentHealth.Degraded(Id, "One or more gateway services unavailable", data: healthData);
+            : ComponentHealth.Degraded(Id, "Gateway is not available or not running", data: healthData);
 
         return Task.FromResult(health);
     }
 
     protected override ComponentHealth? PerformHealthCheck()
     {
-        var gatewayHealthy = _apiGateway != null;
-        var routeManagerHealthy = _routeManager != null;
-        var loadBalancerHealthy = _loadBalancer != null;
-        var rateLimiterHealthy = _rateLimiter != null;
+        var gatewayHealthy = _gateway != null;
+        var isRunning = _gateway?.IsRunning ?? false;
+        var stats = _gateway?.GetStatistics();
 
-        var routeCount = _routeManager?.GetAllRoutes().Count() ?? 0;
-        var isHealthy = gatewayHealthy && routeManagerHealthy && loadBalancerHealthy && rateLimiterHealthy;
+        var isHealthy = gatewayHealthy && isRunning;
 
         var healthData = new Dictionary<string, object>
         {
             ["ComponentName"] = Name,
             ["Version"] = Version,
-            ["ApiGateway"] = gatewayHealthy ? "Available" : "Unavailable",
-            ["RouteManager"] = routeManagerHealthy ? "Available" : "Unavailable",
-            ["LoadBalancer"] = loadBalancerHealthy ? "Available" : "Unavailable",
-            ["RateLimiter"] = rateLimiterHealthy ? "Available" : "Unavailable",
-            ["RouteCount"] = routeCount
+            ["Gateway"] = gatewayHealthy ? "Available" : "Unavailable",
+            ["IsRunning"] = isRunning,
+            ["ServerBindings"] = stats?.ServerBindings ?? 0,
+            ["ClientEndpoints"] = stats?.ClientEndpoints ?? 0,
+            ["RegisteredTransports"] = stats?.RegisteredTransports ?? 0,
+            ["ActiveConnections"] = stats?.ConnectionStatistics?.TotalConnections ?? 0,
+            ["RouteCount"] = stats?.RoutingStatistics?.TotalRoutes ?? 0
         };
 
         return isHealthy
             ? ComponentHealth.Healthy(Id, healthData)
-            : ComponentHealth.Degraded(Id, "One or more gateway services unavailable", data: healthData);
+            : ComponentHealth.Degraded(Id, "Gateway is not available or not running", data: healthData);
     }
 
     protected override void CollectMetrics(ComponentMetrics metrics)
     {
-        metrics.SetCounter("api_gateway_available", _apiGateway != null ? 1 : 0);
-        metrics.SetCounter("route_manager_available", _routeManager != null ? 1 : 0);
-        metrics.SetCounter("load_balancer_available", _loadBalancer != null ? 1 : 0);
-        metrics.SetCounter("rate_limiter_available", _rateLimiter != null ? 1 : 0);
-        metrics.SetCounter("route_count", _routeManager?.GetAllRoutes().Count() ?? 0);
-        metrics.SetCounter("rate_limiting_enabled", _configuration?.EnableRateLimiting == true ? 1 : 0);
+        var stats = _gateway?.GetStatistics();
+
+        metrics.SetCounter("gateway_available", _gateway != null ? 1 : 0);
+        metrics.SetCounter("gateway_running", _gateway?.IsRunning == true ? 1 : 0);
+        metrics.SetCounter("server_bindings", stats?.ServerBindings ?? 0);
+        metrics.SetCounter("client_endpoints", stats?.ClientEndpoints ?? 0);
+        metrics.SetCounter("registered_transports", stats?.RegisteredTransports ?? 0);
+        metrics.SetCounter("connection_tracking_enabled", _configuration?.EnableConnectionTracking == true ? 1 : 0);
         metrics.SetCounter("metrics_enabled", _configuration?.EnableMetrics == true ? 1 : 0);
         metrics.SetGauge("component_state", (int)GetState());
 
-        // Collect gateway metrics if available
-        if (_apiGateway != null && _configuration?.EnableMetrics == true)
+        // Collect gateway statistics if available
+        if (stats != null && _configuration?.EnableMetrics == true)
         {
-            var allMetrics = _apiGateway.GetAllMetrics();
-            var totalRequests = allMetrics.Values.Sum(m => m.TotalRequests);
-            var successfulRequests = allMetrics.Values.Sum(m => m.SuccessfulRequests);
-            var failedRequests = allMetrics.Values.Sum(m => m.FailedRequests);
-            var avgResponseTime = allMetrics.Values.Count > 0
-                ? allMetrics.Values.Average(m => m.AverageResponseTimeMs)
-                : 0;
+            // Connection metrics
+            if (stats.ConnectionStatistics != null)
+            {
+                metrics.SetCounter("total_connections", stats.ConnectionStatistics.TotalConnections);
+                metrics.SetCounter("total_bytes_transferred", stats.ConnectionStatistics.TotalBytesTransferred);
+                metrics.SetCounter("total_messages_transferred", stats.ConnectionStatistics.TotalMessagesTransferred);
+                metrics.SetGauge("average_connection_duration_ms", stats.ConnectionStatistics.AverageConnectionDuration.TotalMilliseconds);
 
-            metrics.SetCounter("total_requests", totalRequests);
-            metrics.SetCounter("successful_requests", successfulRequests);
-            metrics.SetCounter("failed_requests", failedRequests);
-            metrics.SetGauge("average_response_time_ms", avgResponseTime);
+                foreach (var statusGroup in stats.ConnectionStatistics.ConnectionsByStatus)
+                {
+                    metrics.SetCounter($"connections_{statusGroup.Key.ToString().ToLower()}", statusGroup.Value);
+                }
+            }
+
+            // Routing metrics
+            if (stats.RoutingStatistics != null)
+            {
+                metrics.SetCounter("total_routes", stats.RoutingStatistics.TotalRoutes);
+                metrics.SetCounter("inbound_routes", stats.RoutingStatistics.InboundRoutes);
+                metrics.SetCounter("outbound_routes", stats.RoutingStatistics.OutboundRoutes);
+                metrics.SetCounter("enabled_routes", stats.RoutingStatistics.EnabledRoutes);
+                metrics.SetCounter("disabled_routes", stats.RoutingStatistics.DisabledRoutes);
+                metrics.SetCounter("total_route_matches", stats.RoutingStatistics.TotalMatches);
+            }
+
+            // Transport health metrics
+            if (stats.TransportHealth != null)
+            {
+                var connectedTransports = stats.TransportHealth.Values.Count(t => t.IsConnected);
+                var disconnectedTransports = stats.TransportHealth.Values.Count(t => !t.IsConnected);
+
+                metrics.SetCounter("connected_transports", connectedTransports);
+                metrics.SetCounter("disconnected_transports", disconnectedTransports);
+            }
+
+            // Bound ports
+            metrics.SetCounter("bound_ports", stats.BoundPorts.Length);
         }
     }
 
     /// <summary>
-    /// Gets the API gateway.
+    /// Gets the gateway.
     /// </summary>
-    public ApiGateway GetApiGateway() => _apiGateway;
+    public Gateway GetGateway() => _gateway;
 
     /// <summary>
-    /// Gets the route manager.
+    /// Gets the routing table.
     /// </summary>
-    public RouteManager GetRouteManager() => _routeManager;
+    public RoutingTable GetRoutingTable() => _gateway.RoutingTable;
 
     /// <summary>
-    /// Gets the load balancer.
+    /// Gets the connection table.
     /// </summary>
-    public LoadBalancer GetLoadBalancer() => _loadBalancer;
+    public ConnectionTable GetConnectionTable() => _gateway.ConnectionTable;
 
     /// <summary>
-    /// Gets the rate limiter.
+    /// Gets the transport registry.
     /// </summary>
-    public RateLimiter GetRateLimiter() => _rateLimiter;
+    public TransportRegistry GetTransportRegistry() => _gateway.TransportRegistry;
 
     /// <summary>
     /// Gets the gateway configuration.
@@ -316,10 +335,10 @@ public class GatewayComponent : AbstractPluggableComponent
     /// <summary>
     /// Adds a new route to the gateway.
     /// </summary>
-    public void AddRoute(RouteConfiguration route)
+    public void AddRoute(RouteEntry route)
     {
         ArgumentNullException.ThrowIfNull(route);
-        _routeManager.AddRoute(route);
+        _gateway.RoutingTable.AddRoute(route);
         Logger.LogInformation("Added route '{RouteId}' to gateway", route.Id);
     }
 
@@ -328,7 +347,7 @@ public class GatewayComponent : AbstractPluggableComponent
     /// </summary>
     public bool RemoveRoute(string routeId)
     {
-        var result = _routeManager.RemoveRoute(routeId);
+        var result = _gateway.RoutingTable.RemoveRoute(routeId);
         if (result)
         {
             Logger.LogInformation("Removed route '{RouteId}' from gateway", routeId);
@@ -337,18 +356,34 @@ public class GatewayComponent : AbstractPluggableComponent
     }
 
     /// <summary>
-    /// Gets metrics for a specific route.
+    /// Gets gateway statistics.
     /// </summary>
-    public GatewayMetrics? GetRouteMetrics(string routeId)
+    public GatewayStatistics GetGatewayStatistics()
     {
-        return _apiGateway.GetMetrics(routeId);
+        return _gateway.GetStatistics();
     }
 
     /// <summary>
-    /// Gets all gateway metrics.
+    /// Gets connection statistics.
     /// </summary>
-    public IDictionary<string, GatewayMetrics> GetAllMetrics()
+    public ConnectionTableStatistics GetConnectionStatistics()
     {
-        return _apiGateway.GetAllMetrics();
+        return _gateway.ConnectionTable.GetStatistics();
+    }
+
+    /// <summary>
+    /// Gets routing statistics.
+    /// </summary>
+    public RoutingTableStatistics GetRoutingStatistics()
+    {
+        return _gateway.RoutingTable.GetStatistics();
+    }
+
+    /// <summary>
+    /// Gets transport health information.
+    /// </summary>
+    public Dictionary<Transports.Core.TransportType, TransportHealth> GetTransportHealth()
+    {
+        return _gateway.TransportRegistry.GetTransportHealth();
     }
 }
