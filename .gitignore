@@ -492,3 +492,11 @@ logs/
 runtime/
 temp/
 tmp/
+
+# Development/testing files that shouldn't be tracked
+CLAUDE.md
+QUICK_START.md
+TEST_SUMMARY.md
+TestResults/
+coverage-results/
+GETTING_STARTED_ALPHA.md
