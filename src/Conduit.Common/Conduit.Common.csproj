@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Common</PackageId>
-    <Version>0.9.0-alpha</Version>
+    <Version>0.9.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Common utilities and helpers for the Conduit messaging framework</Description>
     <PackageTags>messaging;utilities;helpers</PackageTags>

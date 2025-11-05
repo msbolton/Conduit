@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.ZeroMq</PackageId>
-    <Version>0.9.0-alpha</Version>
+    <Version>0.9.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>ZeroMQ transport implementation for the Conduit messaging framework</Description>
     <PackageTags>messaging;zeromq;zmq;transport;distributed</PackageTags>

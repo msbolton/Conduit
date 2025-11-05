@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Security</PackageId>
-    <Version>0.9.0-alpha</Version>
+    <Version>0.9.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>Security services including authentication, authorization, and encryption for the Conduit messaging framework</Description>
     <PackageTags>security;authentication;authorization;encryption;jwt</PackageTags>

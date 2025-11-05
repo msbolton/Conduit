@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Gateway</PackageId>
-    <Version>0.9.0-alpha</Version>
+    <Version>0.9.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>API Gateway for the Conduit messaging framework with routing, load balancing, and rate limiting</Description>
     <PackageTags>conduit;gateway;api-gateway;routing;load-balancing;rate-limiting</PackageTags>
