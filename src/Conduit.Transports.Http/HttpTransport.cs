@@ -18,6 +18,7 @@ public class HttpTransport : TransportAdapterBase
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Dictionary<string, HttpSubscription> _subscriptions;
     private readonly object _subscriptionLock = new();
+    private readonly ILogger<HttpTransport> _logger;
 
     public override TransportType Type => TransportType.Http;
     public override string Name => "HTTP Transport";
@@ -29,6 +30,7 @@ public class HttpTransport : TransportAdapterBase
         : base(configuration, logger)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = CreateHttpClient();
         _jsonOptions = CreateJsonOptions();
         _subscriptions = new Dictionary<string, HttpSubscription>();
@@ -39,17 +41,17 @@ public class HttpTransport : TransportAdapterBase
     /// </summary>
     protected override async Task ConnectCoreAsync(CancellationToken cancellationToken)
     {
-        Logger?.LogInformation("Connecting HTTP transport to {BaseUrl}", _configuration.BaseUrl);
+        _logger?.LogInformation("Connecting HTTP transport to {BaseUrl}", _configuration.BaseUrl);
 
         try
         {
             var healthCheckUrl = $"{_configuration.BaseUrl.TrimEnd('/')}/health";
             var response = await _httpClient.GetAsync(healthCheckUrl, cancellationToken);
-            Logger?.LogInformation("HTTP transport connectivity test completed with status: {StatusCode}", response.StatusCode);
+            _logger?.LogInformation("HTTP transport connectivity test completed with status: {StatusCode}", response.StatusCode);
         }
         catch (Exception ex)
         {
-            Logger?.LogWarning(ex, "HTTP connectivity test failed, but transport will continue");
+            _logger?.LogWarning(ex, "HTTP connectivity test failed, but transport will continue");
         }
 
         IsConnected = true;
@@ -60,7 +62,7 @@ public class HttpTransport : TransportAdapterBase
     /// </summary>
     protected override async Task DisconnectCoreAsync(CancellationToken cancellationToken)
     {
-        Logger?.LogInformation("Disconnecting HTTP transport");
+        _logger?.LogInformation("Disconnecting HTTP transport");
 
         lock (_subscriptionLock)
         {
@@ -80,9 +82,18 @@ public class HttpTransport : TransportAdapterBase
     /// </summary>
     protected override async Task SendCoreAsync(IMessage message, string? destination, CancellationToken cancellationToken)
     {
-        var transportMessage = CreateTransportMessage(message);
+        var transportMessage = new TransportMessage
+        {
+            MessageId = message.MessageId,
+            CorrelationId = message.CorrelationId,
+            CausationId = message.CausationId,
+            MessageType = message.GetType().AssemblyQualifiedName ?? message.GetType().FullName ?? "Unknown",
+            Payload = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, _jsonOptions)),
+            ContentType = "application/json",
+            Timestamp = DateTimeOffset.UtcNow
+        };
         var json = JsonSerializer.Serialize(transportMessage, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
 
         var endpoint = destination ?? GetEndpointForMessage(message);
         var response = await SendWithRetryAsync(endpoint, content, cancellationToken);
@@ -93,7 +104,7 @@ public class HttpTransport : TransportAdapterBase
             throw new InvalidOperationException($"HTTP request failed with status {response.StatusCode}: {errorContent}");
         }
 
-        Logger?.LogDebug("Message sent successfully via HTTP to {Endpoint}", endpoint);
+        _logger?.LogDebug("Message sent successfully via HTTP to {Endpoint}", endpoint);
     }
 
     /// <summary>
@@ -113,10 +124,10 @@ public class HttpTransport : TransportAdapterBase
                 throw new InvalidOperationException($"Already subscribed to topic: {topic}");
             }
 
-            var subscription = new HttpSubscription(topic, messageHandler, _configuration, Logger);
+            var subscription = new HttpSubscription(topic, messageHandler, _configuration, _logger);
             _subscriptions[topic] = subscription;
 
-            Logger?.LogInformation("Subscribed to HTTP topic: {Topic}", topic);
+            _logger?.LogInformation("Subscribed to HTTP topic: {Topic}", topic);
             return subscription;
         }
     }
@@ -141,21 +152,24 @@ public class HttpTransport : TransportAdapterBase
 
             var topic = ExtractTopicFromPath(path);
 
+            HttpSubscription? subscription = null;
             lock (_subscriptionLock)
             {
-                if (_subscriptions.TryGetValue(topic, out var subscription))
-                {
-                    await subscription.ProcessTransportMessageAsync(transportMessage);
-                    return Result.Success();
-                }
+                _subscriptions.TryGetValue(topic, out subscription);
             }
 
-            Logger?.LogWarning("No subscription found for HTTP topic: {Topic}", topic);
+            if (subscription != null)
+            {
+                await subscription.ProcessTransportMessageAsync(transportMessage);
+                return Result.Success();
+            }
+
+            _logger?.LogWarning("No subscription found for HTTP topic: {Topic}", topic);
             return Result.Failure($"No subscription for topic: {topic}");
         }
         catch (Exception ex)
         {
-            Logger?.LogError(ex, "Error processing HTTP request");
+            _logger?.LogError(ex, "Error processing HTTP request");
             return Result.Failure($"Request processing error: {ex.Message}");
         }
     }
@@ -272,12 +286,12 @@ public class HttpTransport : TransportAdapterBase
                     return response;
                 }
 
-                Logger?.LogWarning("HTTP request failed with retryable status {StatusCode}, attempt {Attempt}/{MaxAttempts}",
+                _logger?.LogWarning("HTTP request failed with retryable status {StatusCode}, attempt {Attempt}/{MaxAttempts}",
                     response.StatusCode, attempt + 1, _configuration.Retry.MaxAttempts);
             }
             catch (HttpRequestException ex)
             {
-                Logger?.LogWarning(ex, "HTTP request exception on attempt {Attempt}/{MaxAttempts}",
+                _logger?.LogWarning(ex, "HTTP request exception on attempt {Attempt}/{MaxAttempts}",
                     attempt + 1, _configuration.Retry.MaxAttempts);
             }
 

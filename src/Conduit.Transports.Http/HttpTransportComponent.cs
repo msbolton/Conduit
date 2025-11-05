@@ -1,6 +1,8 @@
+using Conduit.Api;
 using Conduit.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ServiceLifetime = Conduit.Api.ServiceLifetime;
 
 namespace Conduit.Transports.Http;
 
@@ -24,8 +26,8 @@ public class HttpTransportComponent : AbstractPluggableComponent
             MinFrameworkVersion = "0.9.0",
             Dependencies = new List<ComponentDependency>
             {
-                new() { ComponentId = "transport-core", MinVersion = "0.9.0" },
-                new() { ComponentId = "messaging", MinVersion = "0.9.0" }
+                new() { Id = "transport-core", MinVersion = "0.9.0" },
+                new() { Id = "messaging", MinVersion = "0.9.0" }
             },
             Tags = new HashSet<string> { "transport", "http", "rest", "web", "api" }
         };
@@ -77,7 +79,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
             Description = "Send and receive messages over HTTP/REST protocols",
             Version = Version,
             IsEnabledByDefault = false,
-            Configuration = new Dictionary<string, object>
+            Metadata = new Dictionary<string, object>
             {
                 ["BaseUrl"] = "http://localhost:8080",
                 ["RequestTimeout"] = "00:00:30",
@@ -95,7 +97,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
             Description = "Process incoming HTTP requests as messages",
             Version = Version,
             IsEnabledByDefault = false,
-            Configuration = new Dictionary<string, object>
+            Metadata = new Dictionary<string, object>
             {
                 ["EnableServer"] = false,
                 ["ServerPort"] = 8080,
@@ -111,7 +113,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
             Description = "Support for various HTTP authentication methods",
             Version = Version,
             IsEnabledByDefault = false,
-            Configuration = new Dictionary<string, object>
+            Metadata = new Dictionary<string, object>
             {
                 ["AuthenticationType"] = "None",
                 ["SupportedTypes"] = new[] { "Bearer", "Basic", "ApiKey" }
@@ -141,7 +143,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
         try
         {
             // Validate HTTP configuration if available
-            var configuration = ServiceProvider?.GetService<HttpConfiguration>();
+            var configuration = Context?.ServiceProvider?.GetService<HttpConfiguration>();
             if (configuration != null)
             {
                 ValidateConfiguration(configuration);
@@ -168,7 +170,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
         try
         {
             // Start HTTP transport if configured
-            var transport = ServiceProvider?.GetService<HttpTransport>();
+            var transport = Context?.ServiceProvider?.GetService<HttpTransport>();
             if (transport != null)
             {
                 await transport.ConnectAsync(cancellationToken);
@@ -194,7 +196,7 @@ public class HttpTransportComponent : AbstractPluggableComponent
 
         try
         {
-            var transport = ServiceProvider?.GetService<HttpTransport>();
+            var transport = Context?.ServiceProvider?.GetService<HttpTransport>();
             if (transport != null)
             {
                 await transport.DisconnectAsync(cancellationToken);

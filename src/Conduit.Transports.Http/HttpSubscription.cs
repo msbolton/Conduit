@@ -69,16 +69,16 @@ public class HttpSubscription : ITransportSubscription
         try
         {
             _logger?.LogDebug("Processing HTTP transport message for topic: {Topic}, MessageId: {MessageId}",
-                _topic, transportMessage.Id);
+                _topic, transportMessage.MessageId);
 
             await _messageHandler(transportMessage);
 
             Interlocked.Increment(ref _messagesReceived);
-            _logger?.LogDebug("Successfully processed HTTP transport message: {MessageId}", transportMessage.Id);
+            _logger?.LogDebug("Successfully processed HTTP transport message: {MessageId}", transportMessage.MessageId);
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error processing HTTP transport message: {MessageId}", transportMessage.Id);
+            _logger?.LogError(ex, "Error processing HTTP transport message: {MessageId}", transportMessage.MessageId);
             throw;
         }
     }

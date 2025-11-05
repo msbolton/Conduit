@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <PackageReference Include="Apache.NMS.AMQP" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
   </ItemGroup>
 

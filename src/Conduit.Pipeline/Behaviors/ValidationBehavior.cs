@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
+using Conduit.Core.Behaviors;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -25,7 +26,7 @@ public class ValidationBehavior : IPipelineBehavior
     /// </summary>
     public async Task<object?> ExecuteAsync(PipelineContext context, BehaviorChain next)
     {
-        if (context.Message == null)
+        if (context.Input == null)
         {
             if (_options.AllowNullMessages)
             {
@@ -37,18 +38,18 @@ public class ValidationBehavior : IPipelineBehavior
             throw new ValidationException(error);
         }
 
-        var validationContext = new ValidationContext(context.Message);
+        var validationContext = new ValidationContext(context.Input);
         var validationResults = new List<ValidationResult>();
 
         // Perform validation
-        var isValid = Validator.TryValidateObject(context.Message, validationContext, validationResults, _options.ValidateAllProperties);
+        var isValid = Validator.TryValidateObject(context.Input, validationContext, validationResults, _options.ValidateAllProperties);
 
         // Custom validation if provided
         if (isValid && _options.CustomValidators.Count > 0)
         {
             foreach (var customValidator in _options.CustomValidators)
             {
-                var customResult = await customValidator(context.Message, context);
+                var customResult = await customValidator(context.Input, context);
                 if (customResult != null)
                 {
                     validationResults.AddRange(customResult);
@@ -60,10 +61,10 @@ public class ValidationBehavior : IPipelineBehavior
         if (!isValid)
         {
             var errors = validationResults.Select(vr => vr.ErrorMessage ?? "Unknown validation error").ToList();
-            var errorMessage = $"Validation failed for {context.Message.GetType().Name}: {string.Join(", ", errors)}";
+            var errorMessage = $"Validation failed for {context.Input.GetType().Name}: {string.Join(", ", errors)}";
 
             _logger.LogWarning("Validation failed for message {MessageType}: {ValidationErrors}",
-                context.Message.GetType().Name, string.Join("; ", errors));
+                context.Input.GetType().Name, string.Join("; ", errors));
 
             // Store validation errors in context
             context.SetProperty("ValidationErrors", errors);
@@ -82,13 +83,13 @@ public class ValidationBehavior : IPipelineBehavior
                 {
                     IsValid = false,
                     Errors = errors,
-                    MessageType = context.Message.GetType().Name
+                    MessageType = context.Input.GetType().Name
                 };
             }
         }
         else
         {
-            _logger.LogDebug("Validation passed for message {MessageType}", context.Message.GetType().Name);
+            _logger.LogDebug("Validation passed for message {MessageType}", context.Input.GetType().Name);
             context.SetProperty("ValidationPassed", true);
         }
 

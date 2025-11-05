@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Conduit.Core.Behaviors;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -31,7 +32,7 @@ public class CachingBehavior : IPipelineBehavior
     public async Task<object?> ExecuteAsync(PipelineContext context, BehaviorChain next)
     {
         // Check if caching is disabled for this context
-        if (context.GetProperty<bool>("CachingDisabled"))
+        if (context.GetValueProperty<bool>("CachingDisabled"))
         {
             return await next.ProceedAsync(context);
         }
@@ -77,9 +78,9 @@ public class CachingBehavior : IPipelineBehavior
 
     private bool ShouldCache(PipelineContext context)
     {
-        if (context.Message == null) return false;
+        if (context.Input == null) return false;
 
-        var messageType = context.Message.GetType();
+        var messageType = context.Input.GetType();
 
         // Check if message type is in the cacheable types
         if (_options.CacheableMessageTypes.Count > 0)
@@ -134,8 +135,8 @@ public class CachingBehavior : IPipelineBehavior
         }
 
         // Default cache key generation
-        var messageType = context.Message?.GetType().Name ?? "Unknown";
-        var messageContent = SerializeMessage(context.Message);
+        var messageType = context.Input?.GetType().Name ?? "Unknown";
+        var messageContent = SerializeMessage(context.Input);
         var userContext = context.GetProperty<string>("UserId") ?? "anonymous";
 
         var keyData = $"{messageType}:{userContext}:{messageContent}";

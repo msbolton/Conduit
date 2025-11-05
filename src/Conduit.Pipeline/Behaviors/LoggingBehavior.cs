@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.Json;
+using Conduit.Core.Behaviors;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -33,7 +34,7 @@ public class LoggingBehavior : IPipelineBehavior
         {
             ["CorrelationId"] = correlationId,
             ["RequestId"] = requestId,
-            ["MessageType"] = context.Message?.GetType().Name ?? "Unknown"
+            ["MessageType"] = context.Input?.GetType().Name ?? "Unknown"
         });
 
         if (_options.LogRequests)
@@ -73,8 +74,8 @@ public class LoggingBehavior : IPipelineBehavior
 
     private void LogRequest(PipelineContext context, string correlationId, string requestId)
     {
-        var messageType = context.Message?.GetType().Name ?? "Unknown";
-        var messageData = _options.IncludeMessageContent ? GetSafeMessageContent(context.Message) : "[Content Hidden]";
+        var messageType = context.Input?.GetType().Name ?? "Unknown";
+        var messageData = _options.IncludeMessageContent ? GetSafeMessageContent(context.Input) : "[Content Hidden]";
 
         _logger.LogInformation(
             "Processing {MessageType} - CorrelationId: {CorrelationId}, RequestId: {RequestId}, Message: {MessageData}",
@@ -83,7 +84,7 @@ public class LoggingBehavior : IPipelineBehavior
 
     private void LogResponse(PipelineContext context, object? result, TimeSpan duration, Exception? exception, string correlationId, string requestId)
     {
-        var messageType = context.Message?.GetType().Name ?? "Unknown";
+        var messageType = context.Input?.GetType().Name ?? "Unknown";
 
         if (exception != null)
         {
@@ -103,7 +104,7 @@ public class LoggingBehavior : IPipelineBehavior
 
     private void LogPerformanceMetrics(PipelineContext context, TimeSpan duration, string correlationId, string requestId)
     {
-        var messageType = context.Message?.GetType().Name ?? "Unknown";
+        var messageType = context.Input?.GetType().Name ?? "Unknown";
 
         if (duration > _options.SlowRequestThreshold)
         {

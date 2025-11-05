@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Threading.RateLimiting;
+using Conduit.Core.Behaviors;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -35,7 +36,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
         }
 
         // Check if rate limiting is disabled for this context
-        if (context.GetProperty<bool>("RateLimitingDisabled"))
+        if (context.GetValueProperty<bool>("RateLimitingDisabled"))
         {
             return await next.ProceedAsync(context);
         }
@@ -55,7 +56,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
             if (waitTime > TimeSpan.FromMilliseconds(100))
             {
                 _logger.LogDebug("Acquired rate limit permit after waiting {WaitTime}ms for {MessageType} with key {RateLimiterKey}",
-                    waitTime.TotalMilliseconds, context.Message?.GetType().Name ?? "Unknown", rateLimiterKey);
+                    waitTime.TotalMilliseconds, context.Input?.GetType().Name ?? "Unknown", rateLimiterKey);
             }
 
             context.SetProperty("RateLimitAcquired", true);
@@ -68,7 +69,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
         {
             var waitTime = DateTimeOffset.UtcNow - startTime;
             _logger.LogWarning("Rate limit exceeded for {MessageType} with key {RateLimiterKey} after waiting {WaitTime}ms",
-                context.Message?.GetType().Name ?? "Unknown", rateLimiterKey, waitTime.TotalMilliseconds);
+                context.Input?.GetType().Name ?? "Unknown", rateLimiterKey, waitTime.TotalMilliseconds);
 
             context.SetProperty("RateLimitExceeded", true);
             context.SetProperty("RateLimitWaitTime", waitTime);
@@ -76,7 +77,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
 
             if (_options.ThrowOnRateLimitExceeded)
             {
-                throw new RateLimitExceededException($"Rate limit exceeded for {context.Message?.GetType().Name} with key {rateLimiterKey}");
+                throw new RateLimitExceededException($"Rate limit exceeded for {context.Input?.GetType().Name} with key {rateLimiterKey}");
             }
 
             if (_options.ReturnErrorOnRateLimitExceeded)
@@ -85,7 +86,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
                 {
                     IsRateLimited = true,
                     RateLimiterKey = rateLimiterKey,
-                    MessageType = context.Message?.GetType().Name ?? "Unknown",
+                    MessageType = context.Input?.GetType().Name ?? "Unknown",
                     RetryAfter = lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterMetadata) ? retryAfterMetadata : null
                 };
             }
@@ -104,7 +105,7 @@ public class RateLimitingBehavior : IPipelineBehavior, IDisposable
         }
 
         // Default key generation strategy
-        var messageType = context.Message?.GetType().Name ?? "Unknown";
+        var messageType = context.Input?.GetType().Name ?? "Unknown";
         var userId = context.GetProperty<string>("UserId") ?? "anonymous";
         var tenantId = context.GetProperty<string>("TenantId") ?? "default";
 

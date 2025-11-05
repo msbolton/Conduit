@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using Conduit.Core.Behaviors;
 
 namespace Conduit.Pipeline.Behaviors;
 
@@ -26,7 +27,7 @@ public class RetryBehavior : IPipelineBehavior
     public async Task<object?> ExecuteAsync(PipelineContext context, BehaviorChain next)
     {
         // Check if retry is disabled for this context
-        if (context.GetProperty<bool>("RetryDisabled"))
+        if (context.GetValueProperty<bool>("RetryDisabled"))
         {
             return await next.ProceedAsync(context);
         }
@@ -49,7 +50,7 @@ public class RetryBehavior : IPipelineBehavior
             try
             {
                 _logger.LogDebug("Executing attempt {Attempt}/{MaxAttempts} for {MessageType}",
-                    attempt, maxAttempts, context.Message?.GetType().Name ?? "Unknown");
+                    attempt, maxAttempts, context.Input?.GetType().Name ?? "Unknown");
 
                 context.SetProperty("CurrentAttempt", attempt);
                 context.SetProperty("MaxAttempts", maxAttempts);
@@ -61,7 +62,7 @@ public class RetryBehavior : IPipelineBehavior
                 if (attempt > 1)
                 {
                     _logger.LogInformation("Retry succeeded on attempt {Attempt}/{MaxAttempts} for {MessageType} after {TotalDuration}ms",
-                        attempt, maxAttempts, context.Message?.GetType().Name ?? "Unknown", totalStopwatch.ElapsedMilliseconds);
+                        attempt, maxAttempts, context.Input?.GetType().Name ?? "Unknown", totalStopwatch.ElapsedMilliseconds);
                 }
 
                 context.SetProperty("RetrySucceeded", attempt > 1);
@@ -79,7 +80,7 @@ public class RetryBehavior : IPipelineBehavior
                 if (!ShouldRetryForException(ex, context))
                 {
                     _logger.LogWarning("Exception {ExceptionType} is not retryable for {MessageType}, failing immediately",
-                        ex.GetType().Name, context.Message?.GetType().Name ?? "Unknown");
+                        ex.GetType().Name, context.Input?.GetType().Name ?? "Unknown");
                     throw;
                 }
 
@@ -87,7 +88,7 @@ public class RetryBehavior : IPipelineBehavior
                 if (attempt >= maxAttempts)
                 {
                     _logger.LogError(ex, "All retry attempts ({MaxAttempts}) exhausted for {MessageType} after {TotalDuration}ms",
-                        maxAttempts, context.Message?.GetType().Name ?? "Unknown", totalStopwatch.ElapsedMilliseconds);
+                        maxAttempts, context.Input?.GetType().Name ?? "Unknown", totalStopwatch.ElapsedMilliseconds);
 
                     context.SetProperty("RetryExhausted", true);
                     context.SetProperty("TotalAttempts", attempt);
@@ -97,7 +98,7 @@ public class RetryBehavior : IPipelineBehavior
 
                 // Log the retry attempt
                 _logger.LogWarning(ex, "Attempt {Attempt}/{MaxAttempts} failed for {MessageType} in {AttemptDuration}ms, retrying...",
-                    attempt, maxAttempts, context.Message?.GetType().Name ?? "Unknown", attemptStopwatch.ElapsedMilliseconds);
+                    attempt, maxAttempts, context.Input?.GetType().Name ?? "Unknown", attemptStopwatch.ElapsedMilliseconds);
 
                 // Wait before retry
                 var delay = CalculateDelay(attempt, context);
@@ -119,9 +120,9 @@ public class RetryBehavior : IPipelineBehavior
 
     private bool ShouldRetry(PipelineContext context)
     {
-        if (context.Message == null) return false;
+        if (context.Input == null) return false;
 
-        var messageType = context.Message.GetType();
+        var messageType = context.Input.GetType();
 
         // Check if message type is explicitly included
         if (_options.RetryableMessageTypes.Count > 0)
@@ -174,7 +175,7 @@ public class RetryBehavior : IPipelineBehavior
     private int GetMaxAttempts(PipelineContext context)
     {
         // Check if context has a specific max attempts override
-        var contextMaxAttempts = context.GetProperty<int?>("MaxRetryAttempts");
+        var contextMaxAttempts = context.GetProperty("MaxRetryAttempts") as int?;
         if (contextMaxAttempts.HasValue)
         {
             return contextMaxAttempts.Value;
@@ -186,7 +187,7 @@ public class RetryBehavior : IPipelineBehavior
     private TimeSpan CalculateDelay(int attempt, PipelineContext context)
     {
         // Check if context has a specific delay override
-        var contextDelay = context.GetProperty<TimeSpan?>("RetryDelay");
+        var contextDelay = context.GetProperty("RetryDelay") as TimeSpan?;
         if (contextDelay.HasValue)
         {
             return contextDelay.Value;
