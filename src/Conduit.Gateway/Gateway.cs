@@ -10,6 +10,7 @@ using Conduit.Api;
 using Conduit.Messaging;
 using Conduit.Transports.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Conduit.Gateway
 {
@@ -59,7 +60,7 @@ namespace Conduit.Gateway
             _socketManager = new SocketManager(null);
             _transportRegistry = new TransportRegistry(null);
             _loadBalancer = new TransportLoadBalancer(null);
-            _rateLimiter = new RateLimiter(null, _configuration.DefaultRateLimit);
+            _rateLimiter = new RateLimiter(NullLogger<RateLimiter>.Instance, _configuration.DefaultRateLimit);
             _circuitBreaker = new CircuitBreaker(null, TimeSpan.FromMilliseconds(_configuration.CircuitBreakerRecoveryInterval));
 
             _serverTasks = new ConcurrentDictionary<int, CancellationTokenSource>();
