@@ -1,0 +1,493 @@
+# Conduit Framework - Full Configuration Example
+# This file demonstrates all available configuration options
+
+# Application Information
+ApplicationName: "Sample Conduit Application"
+Version: "1.0.0"
+Environment: "Development"
+
+# Logging Configuration
+Logging:
+  LogLevel: "Information"
+  EnableConsoleLogging: true
+  EnableFileLogging: true
+  LogFilePath: "logs/conduit-{Date}.log"
+  EnableStructuredLogging: true
+  Sinks:
+    - Type: "Console"
+      Enabled: true
+      MinimumLevel: "Information"
+      Settings: {}
+    - Type: "File"
+      Enabled: true
+      MinimumLevel: "Debug"
+      Settings:
+        Path: "logs/conduit-{Date}.log"
+        RollingInterval: "Day"
+        RetainedFileCountLimit: 30
+    - Type: "Elasticsearch"
+      Enabled: false
+      MinimumLevel: "Warning"
+      Settings:
+        Uri: "http://localhost:9200"
+        IndexFormat: "conduit-logs-{0:yyyy.MM.dd}"
+  LoggerLevels:
+    "Conduit.Gateway": "Debug"
+    "Conduit.Messaging": "Information"
+    "Microsoft": "Warning"
+
+# Gateway Configuration
+Gateway:
+  # Basic Settings
+  Enabled: true
+  Host: "0.0.0.0"
+  Port: 8080
+  MaxConcurrentConnections: 1000
+  ConnectionTimeout: 30000
+  RequestTimeout: 60000
+
+  # Load Balancing
+  LoadBalancingStrategy: "RoundRobin"
+  HealthCheckInterval: 5000
+  UnhealthyThreshold: 3
+
+  # Rate Limiting
+  EnableRateLimiting: true
+  RequestsPerSecond: 100
+  BurstCapacity: 200
+  BurstCapacityMultiplier: 2
+
+  # Circuit Breaker
+  EnableCircuitBreaker: true
+  CircuitBreakerFailureThreshold: 5
+  CircuitBreakerRecoveryInterval: 30000
+  EnablePerRouteCircuitBreakers: true
+
+  # TLS Configuration
+  EnableTls: false
+  CertificatePath: ""
+  CertificatePassword: ""
+
+  # CORS Settings
+  EnableCors: true
+  CorsOrigins: ["https://localhost:3000", "https://app.example.com"]
+
+  # Compression
+  EnableCompression: true
+  CompressionLevel: "Optimal"
+
+  # Routing Rules
+  Routes:
+    - Name: "api-route"
+      Pattern: "/api/*"
+      Upstream: "http://api-service:8081"
+      Methods: ["GET", "POST", "PUT", "DELETE"]
+      Enabled: true
+      Weight: 100
+      HealthCheckPath: "/health"
+      Timeout: 30000
+
+# Messaging Configuration
+Messaging:
+  DefaultMessageTimeout: 30000
+  MaxMessageSize: 1048576
+  EnableMessageRouting: true
+  EnableDeadLetterQueue: true
+  DeadLetterQueueName: "dlq"
+
+  # Retry Configuration
+  Retry:
+    MaxAttempts: 3
+    InitialDelay: 1000
+    MaxDelay: 30000
+    Strategy: "Exponential"
+    BackoffMultiplier: 2.0
+
+  # Message Routes
+  Routes:
+    - Name: "order-processing"
+      MessageType: "OrderCreated"
+      Source: "*"
+      Destination: "order-service"
+      Transport: "http"
+      Enabled: true
+      Priority: 100
+    - Name: "notification-route"
+      MessageType: "UserNotification"
+      Source: "*"
+      Destination: "notification-service"
+      Transport: "activemq"
+      Enabled: true
+      Priority: 200
+
+# Transport Configurations
+Transports:
+  # HTTP Transport
+  Http:
+    Enabled: true
+    BaseUrl: "http://localhost:8080"
+    Timeout: 30000
+    MaxRetries: 3
+    RetryDelay: 1000
+    KeepAlive: true
+    MaxConnections: 100
+    Headers:
+      "User-Agent": "Conduit/1.0"
+      "Accept": "application/json"
+    Authentication:
+      Type: "Bearer"
+      Token: ""
+      Username: ""
+      Password: ""
+
+  # TCP Transport
+  Tcp:
+    Enabled: true
+    Host: "localhost"
+    Port: 9090
+    BufferSize: 8192
+    KeepAlive: true
+    NoDelay: true
+    ReceiveTimeout: 30000
+    SendTimeout: 30000
+    MaxConnections: 50
+    EnableSsl: false
+    CertificatePath: ""
+    CertificatePassword: ""
+
+  # UDP Transport
+  Udp:
+    Enabled: false
+    Host: "localhost"
+    Port: 9091
+    BufferSize: 8192
+    Multicast: false
+    MulticastGroup: "224.0.0.1"
+    TimeToLive: 64
+
+  # ActiveMQ Transport
+  ActiveMq:
+    Enabled: false
+    BrokerUrl: "tcp://localhost:61616"
+    Username: "admin"
+    Password: "admin"
+    ClientId: "conduit-client"
+    UseAsyncSend: true
+    MaxConnections: 10
+    ConnectionTimeout: 30000
+    RequestTimeout: 30000
+    Queues:
+      - Name: "orders"
+        Durable: true
+        MaxConsumers: 5
+      - Name: "notifications"
+        Durable: true
+        MaxConsumers: 3
+
+  # ZeroMQ Transport
+  ZeroMq:
+    Enabled: false
+    SocketType: "DEALER"
+    Endpoint: "tcp://localhost:5555"
+    HighWaterMark: 1000
+    Linger: 1000
+    ReceiveTimeout: 5000
+    SendTimeout: 5000
+    MaxMessageSize: 1048576
+
+  # WebSocket Transport
+  WebSocket:
+    Enabled: false
+    Uri: "ws://localhost:8080/ws"
+    SubProtocols: []
+    Headers: {}
+    KeepAliveInterval: 30000
+    MaxMessageSize: 1048576
+    EnableCompression: true
+
+  # gRPC Transport
+  Grpc:
+    Enabled: false
+    Address: "http://localhost:50051"
+    MaxReceiveMessageSize: 4194304
+    MaxSendMessageSize: 4194304
+    KeepAliveTime: 30000
+    KeepAliveTimeout: 5000
+    EnableRetry: true
+    MaxRetryAttempts: 3
+    TlsEnabled: false
+    CertificatePath: ""
+
+# Pipeline Configuration
+Pipeline:
+  EnableRequestPipeline: true
+  EnableResponsePipeline: true
+  DefaultTimeout: 30000
+  MaxConcurrentPipelines: 100
+
+  # Request Behaviors
+  RequestBehaviors:
+    - Type: "Logging"
+      Order: 1
+      Enabled: true
+      Settings:
+        LogLevel: "Information"
+        IncludeRequestBody: false
+        IncludeHeaders: true
+    - Type: "Authentication"
+      Order: 2
+      Enabled: true
+      Settings:
+        Schemes: ["Bearer", "ApiKey"]
+        AllowAnonymous: false
+    - Type: "Validation"
+      Order: 3
+      Enabled: true
+      Settings:
+        ValidateRequestSchema: true
+        StrictMode: false
+    - Type: "RateLimiting"
+      Order: 4
+      Enabled: true
+      Settings:
+        RequestsPerSecond: 100
+        BurstCapacity: 200
+
+  # Response Behaviors
+  ResponseBehaviors:
+    - Type: "Compression"
+      Order: 1
+      Enabled: true
+      Settings:
+        Algorithm: "gzip"
+        MinimumBytes: 1024
+    - Type: "Caching"
+      Order: 2
+      Enabled: true
+      Settings:
+        DefaultTtl: 300
+        MaxSize: 1000
+    - Type: "Logging"
+      Order: 3
+      Enabled: true
+      Settings:
+        LogLevel: "Information"
+        IncludeResponseBody: false
+
+# Resilience Configuration
+Resilience:
+  # Circuit Breaker
+  CircuitBreaker:
+    Enabled: true
+    FailureThreshold: 5
+    RecoveryTimeout: 30000
+    SamplingDuration: 10000
+    MinimumThroughput: 20
+
+  # Retry Policy
+  Retry:
+    Enabled: true
+    MaxAttempts: 3
+    BaseDelay: 1000
+    MaxDelay: 30000
+    BackoffType: "Exponential"
+
+  # Bulkhead Isolation
+  Bulkhead:
+    Enabled: true
+    MaxParallelism: 10
+    MaxQueuedActions: 25
+
+  # Timeout Policy
+  Timeout:
+    Enabled: true
+    DefaultTimeout: 30000
+
+  # Rate Limiter
+  RateLimiter:
+    Enabled: true
+    PermitLimit: 100
+    Window: 60000
+
+# Security Configuration
+Security:
+  # Authentication
+  Authentication:
+    Enabled: true
+    DefaultScheme: "Bearer"
+    Schemes:
+      Bearer:
+        Type: "JWT"
+        Issuer: "https://auth.example.com"
+        Audience: "conduit-api"
+        SecretKey: "your-secret-key"
+        ValidateIssuer: true
+        ValidateAudience: true
+        ValidateLifetime: true
+        ClockSkew: 300
+      ApiKey:
+        Type: "ApiKey"
+        HeaderName: "X-API-Key"
+        QueryParameter: "api_key"
+        ValidApiKeys: ["key1", "key2"]
+
+  # Authorization
+  Authorization:
+    Enabled: true
+    DefaultPolicy: "RequireAuthentication"
+    Policies:
+      RequireAuthentication:
+        Requirements: ["Authenticated"]
+      AdminOnly:
+        Requirements: ["Role:Admin"]
+      UserOrAdmin:
+        Requirements: ["Role:User,Admin"]
+
+  # Encryption
+  Encryption:
+    EnableAtRest: true
+    EnableInTransit: true
+    Algorithm: "AES256"
+    KeyRotationInterval: 2592000
+
+  # CORS
+  Cors:
+    Enabled: true
+    AllowedOrigins: ["https://localhost:3000"]
+    AllowedMethods: ["GET", "POST", "PUT", "DELETE"]
+    AllowedHeaders: ["Content-Type", "Authorization"]
+    AllowCredentials: true
+    MaxAge: 3600
+
+# Serialization Configuration
+Serialization:
+  DefaultSerializer: "SystemTextJson"
+  Serializers:
+    SystemTextJson:
+      Enabled: true
+      CaseSensitive: false
+      IgnoreNullValues: true
+      Indented: false
+      MaxDepth: 64
+    Newtonsoft:
+      Enabled: false
+      CaseSensitive: false
+      IgnoreNullValues: true
+      Indented: false
+      DateFormatHandling: "IsoDateFormat"
+    MessagePack:
+      Enabled: false
+      CompressionType: "Lz4Block"
+      OmitAssemblyVersion: true
+    Protobuf:
+      Enabled: false
+      PreserveReferences: false
+      UseCompactFormat: true
+
+# Persistence Configuration
+Persistence:
+  DefaultProvider: "SqlServer"
+  ConnectionTimeout: 30
+  CommandTimeout: 30
+  EnableConnectionPooling: true
+  MaxPoolSize: 100
+  MinPoolSize: 5
+
+  Providers:
+    SqlServer:
+      Enabled: true
+      ConnectionString: "Server=localhost;Database=ConduitDb;Trusted_Connection=true;"
+      EnableRetryLogic: true
+      MaxRetryCount: 3
+      MaxRetryDelay: 30
+    PostgreSql:
+      Enabled: false
+      ConnectionString: "Host=localhost;Database=conduitdb;Username=postgres;Password=password"
+      PoolSize: 50
+      Timeout: 30
+    MongoDB:
+      Enabled: false
+      ConnectionString: "mongodb://localhost:27017"
+      DatabaseName: "conduitdb"
+      ConnectTimeout: 30000
+      ServerSelectionTimeout: 30000
+      MaxConnectionPoolSize: 100
+    Redis:
+      Enabled: false
+      ConnectionString: "localhost:6379"
+      Database: 0
+      ConnectTimeout: 5000
+      SyncTimeout: 5000
+
+# Metrics Configuration
+Metrics:
+  Enabled: true
+  EnablePrometheus: true
+  PrometheusPort: 9090
+  PrometheusPath: "/metrics"
+  EnableApplicationInsights: false
+  ApplicationInsightsKey: ""
+
+  # Custom Metrics
+  CustomMetrics:
+    - Name: "request_duration"
+      Type: "Histogram"
+      Description: "Request processing duration"
+      Labels: ["method", "endpoint", "status"]
+    - Name: "active_connections"
+      Type: "Gauge"
+      Description: "Number of active connections"
+      Labels: ["transport"]
+
+  # Collection Settings
+  Collection:
+    Interval: 10000
+    BufferSize: 1000
+    FlushInterval: 60000
+
+# Components Configuration
+Components:
+  AutoDiscovery: true
+  ScanAssemblies: ["Conduit.*"]
+  Lifetime: "Scoped"
+
+  # Component Registration
+  Services:
+    - Interface: "IMessageHandler"
+      Implementation: "DefaultMessageHandler"
+      Lifetime: "Singleton"
+    - Interface: "ITransportFactory"
+      Implementation: "DefaultTransportFactory"
+      Lifetime: "Scoped"
+
+  # Module Configuration
+  Modules:
+    - Name: "CoreModule"
+      Enabled: true
+      Assembly: "Conduit.Core"
+      Settings: {}
+    - Name: "MessagingModule"
+      Enabled: true
+      Assembly: "Conduit.Messaging"
+      Settings:
+        EnableBackgroundProcessing: true
+        WorkerCount: 5
+
+# Custom Application Settings
+CustomSettings:
+  # Application-specific configuration
+  DatabaseMigration:
+    AutoMigrate: true
+    BackupBeforeMigration: true
+  FeatureFlags:
+    EnableNewUI: true
+    EnableBetaFeatures: false
+  ExternalServices:
+    PaymentService:
+      Url: "https://api.payments.example.com"
+      ApiKey: "payment-api-key"
+      Timeout: 15000
+    NotificationService:
+      Url: "https://api.notifications.example.com"
+      ApiKey: "notification-api-key"
+      Timeout: 10000

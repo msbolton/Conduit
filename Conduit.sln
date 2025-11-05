@@ -73,6 +73,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conduit.Transports.Http", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conduit.Transports.ZeroMq", "src\Conduit.Transports.ZeroMq\Conduit.Transports.ZeroMq.csproj", "{B9A068F8-6ADC-4148-B0B2-1982B5E4D03B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conduit.Configuration", "src\Conduit.Configuration\Conduit.Configuration.csproj", "{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -214,6 +216,10 @@ Global
 		{B9A068F8-6ADC-4148-B0B2-1982B5E4D03B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9A068F8-6ADC-4148-B0B2-1982B5E4D03B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9A068F8-6ADC-4148-B0B2-1982B5E4D03B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{7B47AA46-E613-4127-9750-7B3B8ED1BD99} = {922B71C8-E691-48CA-B060-83F39C93AB11}
@@ -249,5 +255,6 @@ Global
 		{F4B867C7-9348-4051-BF91-71DC4624406A} = {1890FD96-8A5A-4A95-8519-38A759FC29A9}
 		{DBD65647-3B9E-4ABD-956F-7C500161FC55} = {922B71C8-E691-48CA-B060-83F39C93AB11}
 		{B9A068F8-6ADC-4148-B0B2-1982B5E4D03B} = {922B71C8-E691-48CA-B060-83F39C93AB11}
+		{B9A48E55-F2D4-4C97-A739-00F6A6C9AEB2} = {922B71C8-E691-48CA-B060-83F39C93AB11}
 	EndGlobalSection
 EndGlobal

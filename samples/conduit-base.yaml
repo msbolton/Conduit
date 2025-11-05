@@ -1,0 +1,103 @@
+# Conduit Framework - Base Configuration
+# This configuration is shared across all environments
+
+ApplicationName: "Production Conduit Application"
+Version: "1.0.0"
+
+# Comprehensive logging
+Logging:
+  LogLevel: "Information"
+  EnableConsoleLogging: true
+  EnableFileLogging: true
+  EnableStructuredLogging: true
+  Sinks:
+    - Type: "Console"
+      Enabled: true
+      MinimumLevel: "Information"
+    - Type: "File"
+      Enabled: true
+      MinimumLevel: "Warning"
+      Settings:
+        Path: "logs/conduit-{Date}.log"
+        RollingInterval: "Day"
+        RetainedFileCountLimit: 30
+
+# Production gateway settings
+Gateway:
+  Enabled: true
+  Host: "0.0.0.0"
+  Port: 8080
+  MaxConcurrentConnections: 1000
+  LoadBalancingStrategy: "RoundRobin"
+  EnableRateLimiting: true
+  RequestsPerSecond: 1000
+  EnableCircuitBreaker: true
+
+# Robust messaging
+Messaging:
+  DefaultMessageTimeout: 30000
+  MaxMessageSize: 1048576
+  EnableDeadLetterQueue: true
+  Retry:
+    MaxAttempts: 3
+    Strategy: "Exponential"
+
+# Multiple transports
+Transports:
+  Http:
+    Enabled: true
+    Timeout: 30000
+    MaxRetries: 3
+  Tcp:
+    Enabled: true
+    Host: "0.0.0.0"
+    Port: 9090
+
+# Full pipeline
+Pipeline:
+  EnableRequestPipeline: true
+  EnableResponsePipeline: true
+  RequestBehaviors:
+    - Type: "Logging"
+      Order: 1
+      Enabled: true
+    - Type: "Authentication"
+      Order: 2
+      Enabled: true
+
+# Security enabled
+Security:
+  Authentication:
+    Enabled: true
+    DefaultScheme: "Bearer"
+  Authorization:
+    Enabled: true
+    DefaultPolicy: "RequireAuthentication"
+  Encryption:
+    EnableAtRest: true
+    EnableInTransit: true
+
+# Efficient serialization
+Serialization:
+  DefaultSerializer: "SystemTextJson"
+  Serializers:
+    SystemTextJson:
+      Enabled: true
+      IgnoreNullValues: true
+
+# Database persistence
+Persistence:
+  DefaultProvider: "SqlServer"
+  ConnectionTimeout: 30
+  EnableConnectionPooling: true
+
+# Metrics enabled
+Metrics:
+  Enabled: true
+  EnablePrometheus: true
+  PrometheusPort: 9090
+
+# Component discovery
+Components:
+  AutoDiscovery: true
+  ScanAssemblies: ["Conduit.*"]
