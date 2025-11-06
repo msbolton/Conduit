@@ -61,6 +61,11 @@ namespace Conduit.Transports.Core
         Sqs,
 
         /// <summary>
+        /// ZeroMQ transport
+        /// </summary>
+        ZeroMq,
+
+        /// <summary>
         /// Custom transport implementation
         /// </summary>
         Custom

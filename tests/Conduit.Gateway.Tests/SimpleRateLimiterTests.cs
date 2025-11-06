@@ -7,12 +7,12 @@ namespace Conduit.Gateway.Tests;
 
 public class SimpleRateLimiterTests
 {
-    private readonly Mock<ILogger> _mockLogger;
+    private readonly Mock<ILogger<RateLimiter>> _mockLogger;
     private readonly RateLimiter _rateLimiter;
 
     public SimpleRateLimiterTests()
     {
-        _mockLogger = new Mock<ILogger>();
+        _mockLogger = new Mock<ILogger<RateLimiter>>();
         _rateLimiter = new RateLimiter(_mockLogger.Object, defaultRateLimit: 10);
     }
 
@@ -309,7 +309,7 @@ public class SimpleRateLimiterTests
     }
 
     [Fact]
-    public void RateLimiter_ConcurrentAccess_ShouldBeThreadSafe()
+    public async Task RateLimiter_ConcurrentAccess_ShouldBeThreadSafe()
     {
         // Arrange
         var clientId = "concurrent-client";
@@ -321,8 +321,7 @@ public class SimpleRateLimiterTests
             tasks.Add(Task.Run(() => _rateLimiter.AllowRequest(clientId)));
         }
 
-        Task.WaitAll(tasks.ToArray());
-        var results = tasks.Select(t => t.Result).ToList();
+        var results = await Task.WhenAll(tasks);
 
         // Assert - Should have exactly 10 successful requests (within limit)
         var successCount = results.Count(r => r);

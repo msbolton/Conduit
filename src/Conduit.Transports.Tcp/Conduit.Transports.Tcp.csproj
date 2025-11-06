@@ -13,7 +13,7 @@
 
   <PropertyGroup>
     <PackageId>Conduit.Transports.Tcp</PackageId>
-    <Version>0.9.0-alpha</Version>
+    <Version>0.9.0</Version>
     <Authors>Conduit Contributors</Authors>
     <Description>TCP/Socket transport implementation for the Conduit messaging framework with framing protocol</Description>
     <PackageTags>conduit;messaging;tcp;socket;transport;framing</PackageTags>
@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <ProjectReference Include="..\Conduit.Components\Conduit.Components.csproj" />
   </ItemGroup>
 

@@ -1,0 +1,59 @@
+# Conduit Framework - Minimal Configuration
+# This file contains the minimum required configuration to get started
+
+ApplicationName: "My Conduit Application"
+Version: "1.0.0"
+Environment: "Development"
+
+# Basic logging to console
+Logging:
+  LogLevel: "Information"
+  EnableConsoleLogging: true
+  EnableFileLogging: false
+
+# Gateway with basic settings
+Gateway:
+  Enabled: true
+  Host: "localhost"
+  Port: 8080
+  MaxConcurrentConnections: 100
+
+# Simple messaging configuration
+Messaging:
+  DefaultMessageTimeout: 30000
+  MaxMessageSize: 1048576
+
+# Enable HTTP transport only
+Transports:
+  Http:
+    Enabled: true
+    BaseUrl: "http://localhost:8080"
+    Timeout: 30000
+
+# Basic pipeline
+Pipeline:
+  EnableRequestPipeline: true
+  EnableResponsePipeline: true
+
+# Basic security
+Security:
+  Authentication:
+    Enabled: false
+  Authorization:
+    Enabled: false
+
+# Default serialization
+Serialization:
+  DefaultSerializer: "SystemTextJson"
+
+# No persistence
+Persistence:
+  DefaultProvider: ""
+
+# No metrics
+Metrics:
+  Enabled: false
+
+# Auto-discovery for components
+Components:
+  AutoDiscovery: true

@@ -1,0 +1,92 @@
+# Conduit Framework - Production Environment Overrides
+# This file contains production-specific settings that override the base configuration
+
+Environment: "Production"
+
+# Production logging - more restrictive
+Logging:
+  LogLevel: "Warning"
+  Sinks:
+    - Type: "Console"
+      Enabled: true
+      MinimumLevel: "Error"
+    - Type: "File"
+      Enabled: true
+      MinimumLevel: "Warning"
+      Settings:
+        Path: "/var/log/conduit/conduit-{Date}.log"
+        RollingInterval: "Day"
+        RetainedFileCountLimit: 90
+    - Type: "Elasticsearch"
+      Enabled: true
+      MinimumLevel: "Warning"
+      Settings:
+        Uri: "https://elasticsearch.production.com:9200"
+        IndexFormat: "conduit-logs-{0:yyyy.MM.dd}"
+
+# Production gateway - higher limits
+Gateway:
+  MaxConcurrentConnections: 5000
+  RequestsPerSecond: 5000
+  BurstCapacity: 10000
+  EnableTls: true
+  CertificatePath: "/etc/ssl/certs/conduit.crt"
+
+# Production transports
+Transports:
+  Http:
+    BaseUrl: "https://api.production.com"
+    MaxConnections: 500
+    EnableSsl: true
+  Tcp:
+    EnableSsl: true
+    CertificatePath: "/etc/ssl/certs/conduit.crt"
+  ActiveMq:
+    Enabled: true
+    BrokerUrl: "ssl://activemq.production.com:61617"
+    MaxConnections: 50
+
+# Production database
+Persistence:
+  Providers:
+    SqlServer:
+      ConnectionString: "Server=sql.production.com;Database=ConduitProd;Integrated Security=true;Encrypt=true;"
+      MaxPoolSize: 200
+    Redis:
+      Enabled: true
+      ConnectionString: "redis.production.com:6380,ssl=true"
+
+# Enhanced security for production
+Security:
+  Authentication:
+    Schemes:
+      Bearer:
+        Issuer: "https://auth.production.com"
+        Audience: "conduit-prod-api"
+        ValidateIssuer: true
+        ValidateAudience: true
+  Encryption:
+    KeyRotationInterval: 1296000  # 15 days
+
+# Production metrics
+Metrics:
+  EnableApplicationInsights: true
+  ApplicationInsightsKey: "${APPLICATION_INSIGHTS_KEY}"
+  Collection:
+    Interval: 5000
+    FlushInterval: 30000
+
+# Production-specific custom settings
+CustomSettings:
+  DatabaseMigration:
+    AutoMigrate: false
+    BackupBeforeMigration: true
+  FeatureFlags:
+    EnableBetaFeatures: false
+  ExternalServices:
+    PaymentService:
+      Url: "https://api.payments.production.com"
+      Timeout: 10000
+    NotificationService:
+      Url: "https://api.notifications.production.com"
+      Timeout: 8000

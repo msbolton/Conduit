@@ -10,7 +10,7 @@ namespace Conduit.Gateway
     /// </summary>
     public class RateLimiter
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<RateLimiter> _logger;
         private readonly ConcurrentDictionary<string, TokenBucket> _buckets;
         private readonly int _defaultCapacity;
         private readonly double _defaultRefillRate;
@@ -20,7 +20,7 @@ namespace Conduit.Gateway
         /// </summary>
         /// <param name="logger">The logger instance</param>
         /// <param name="defaultRateLimit">The default rate limit (requests per second)</param>
-        public RateLimiter(ILogger logger, int defaultRateLimit = 100)
+        public RateLimiter(ILogger<RateLimiter> logger, int defaultRateLimit = 100)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _buckets = new ConcurrentDictionary<string, TokenBucket>();

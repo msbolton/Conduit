@@ -1,0 +1,350 @@
+# Conduit Framework - Complete Default Configuration
+# This file contains all configuration sections with their default values
+
+# Application Information
+ApplicationName: "Conduit Application"
+Version: "1.0.0"
+Environment: "Development"
+
+# Logging Configuration
+Logging:
+  LogLevel: "Information"
+  EnableConsoleLogging: true
+  EnableFileLogging: true
+  LogFilePath: "logs/conduit-{Date}.log"
+  EnableStructuredLogging: true
+  Sinks:
+    - Type: "Console"
+      Enabled: true
+      MinimumLevel: "Information"
+      Settings: {}
+    - Type: "File"
+      Enabled: true
+      MinimumLevel: "Information"
+      Settings:
+        Path: "logs/conduit-{Date}.log"
+        RollingInterval: "Day"
+  LoggerLevels: {}
+
+# Gateway Configuration
+Gateway:
+  # Basic Settings
+  Enabled: true
+  Host: "localhost"
+  Port: 8080
+  MaxConcurrentConnections: 100
+  ConnectionTimeout: 30000
+  RequestTimeout: 60000
+
+  # Load Balancing
+  LoadBalancingStrategy: "RoundRobin"
+  HealthCheckInterval: 30000
+  UnhealthyThreshold: 3
+
+  # Rate Limiting
+  EnableRateLimiting: false
+  RequestsPerSecond: 100
+  BurstCapacity: 200
+  BurstCapacityMultiplier: 2
+
+  # Circuit Breaker
+  EnableCircuitBreaker: false
+  CircuitBreakerFailureThreshold: 5
+  CircuitBreakerRecoveryInterval: 30000
+  EnablePerRouteCircuitBreakers: true
+
+  # TLS Configuration
+  EnableTls: false
+  CertificatePath: ""
+  CertificatePassword: ""
+
+  # CORS Settings
+  EnableCors: false
+  CorsOrigins: []
+
+  # Compression
+  EnableCompression: false
+  CompressionLevel: "Optimal"
+
+  # Routing Rules
+  Routes: []
+
+# Messaging Configuration
+Messaging:
+  DefaultMessageTimeout: 30000
+  MaxMessageSize: 1048576
+  EnableMessageRouting: true
+  EnableDeadLetterQueue: true
+  DeadLetterQueueName: "dlq"
+
+  # Retry Configuration
+  Retry:
+    MaxAttempts: 3
+    InitialDelay: 1000
+    MaxDelay: 30000
+    Strategy: "Exponential"
+    BackoffMultiplier: 2.0
+
+  # Message Routes
+  Routes: []
+
+# Transport Configurations
+Transports:
+  # HTTP Transport
+  Http:
+    Enabled: false
+    BaseUrl: ""
+    Timeout: 30000
+    MaxRetries: 3
+    RetryDelay: 1000
+    KeepAlive: true
+    MaxConnections: 100
+    Headers: {}
+    Authentication:
+      Type: ""
+      Token: ""
+      Username: ""
+      Password: ""
+
+  # TCP Transport
+  Tcp:
+    Enabled: false
+    Host: "localhost"
+    Port: 0
+    BufferSize: 8192
+    KeepAlive: true
+    NoDelay: true
+    ReceiveTimeout: 30000
+    SendTimeout: 30000
+    MaxConnections: 50
+    EnableSsl: false
+    CertificatePath: ""
+    CertificatePassword: ""
+
+  # UDP Transport
+  Udp:
+    Enabled: false
+    Host: "localhost"
+    Port: 0
+    BufferSize: 8192
+    Multicast: false
+    MulticastGroup: ""
+    TimeToLive: 64
+
+  # ActiveMQ Transport
+  ActiveMq:
+    Enabled: false
+    BrokerUrl: ""
+    Username: ""
+    Password: ""
+    ClientId: ""
+    UseAsyncSend: true
+    MaxConnections: 10
+    ConnectionTimeout: 30000
+    RequestTimeout: 30000
+    Queues: []
+
+  # ZeroMQ Transport
+  ZeroMq:
+    Enabled: false
+    SocketType: "DEALER"
+    Endpoint: ""
+    HighWaterMark: 1000
+    Linger: 1000
+    ReceiveTimeout: 5000
+    SendTimeout: 5000
+    MaxMessageSize: 1048576
+
+  # WebSocket Transport
+  WebSocket:
+    Enabled: false
+    Uri: ""
+    SubProtocols: []
+    Headers: {}
+    KeepAliveInterval: 30000
+    MaxMessageSize: 1048576
+    EnableCompression: false
+
+  # gRPC Transport
+  Grpc:
+    Enabled: false
+    Address: ""
+    MaxReceiveMessageSize: 4194304
+    MaxSendMessageSize: 4194304
+    KeepAliveTime: 30000
+    KeepAliveTimeout: 5000
+    EnableRetry: true
+    MaxRetryAttempts: 3
+    TlsEnabled: false
+    CertificatePath: ""
+
+# Pipeline Configuration
+Pipeline:
+  EnableRequestPipeline: true
+  EnableResponsePipeline: true
+  DefaultTimeout: 30000
+  MaxConcurrentPipelines: 100
+
+  # Request Behaviors
+  RequestBehaviors: []
+
+  # Response Behaviors
+  ResponseBehaviors: []
+
+# Resilience Configuration
+Resilience:
+  # Circuit Breaker
+  CircuitBreaker:
+    Enabled: false
+    FailureThreshold: 5
+    RecoveryTimeout: 30000
+    SamplingDuration: 10000
+    MinimumThroughput: 20
+
+  # Retry Policy
+  Retry:
+    Enabled: false
+    MaxAttempts: 3
+    BaseDelay: 1000
+    MaxDelay: 30000
+    BackoffType: "Exponential"
+
+  # Bulkhead Isolation
+  Bulkhead:
+    Enabled: false
+    MaxParallelism: 10
+    MaxQueuedActions: 25
+
+  # Timeout Policy
+  Timeout:
+    Enabled: false
+    DefaultTimeout: 30000
+
+  # Rate Limiter
+  RateLimiter:
+    Enabled: false
+    PermitLimit: 100
+    Window: 60000
+
+# Security Configuration
+Security:
+  # Authentication
+  Authentication:
+    Enabled: false
+    DefaultScheme: "Bearer"
+    Schemes: {}
+
+  # Authorization
+  Authorization:
+    Enabled: false
+    DefaultPolicy: ""
+    Policies: {}
+
+  # Encryption
+  Encryption:
+    EnableAtRest: false
+    EnableInTransit: false
+    Algorithm: "AES256"
+    KeyRotationInterval: 2592000
+
+  # CORS
+  Cors:
+    Enabled: false
+    AllowedOrigins: []
+    AllowedMethods: []
+    AllowedHeaders: []
+    AllowCredentials: false
+    MaxAge: 3600
+
+# Serialization Configuration
+Serialization:
+  DefaultSerializer: "SystemTextJson"
+  Serializers:
+    SystemTextJson:
+      Enabled: true
+      CaseSensitive: false
+      IgnoreNullValues: true
+      Indented: false
+      MaxDepth: 64
+    Newtonsoft:
+      Enabled: false
+      CaseSensitive: false
+      IgnoreNullValues: true
+      Indented: false
+      DateFormatHandling: "IsoDateFormat"
+    MessagePack:
+      Enabled: false
+      CompressionType: "None"
+      OmitAssemblyVersion: false
+    Protobuf:
+      Enabled: false
+      PreserveReferences: false
+      UseCompactFormat: true
+
+# Persistence Configuration
+Persistence:
+  DefaultProvider: ""
+  ConnectionTimeout: 30
+  CommandTimeout: 30
+  EnableConnectionPooling: true
+  MaxPoolSize: 100
+  MinPoolSize: 5
+
+  Providers:
+    SqlServer:
+      Enabled: false
+      ConnectionString: ""
+      EnableRetryLogic: false
+      MaxRetryCount: 3
+      MaxRetryDelay: 30
+    PostgreSql:
+      Enabled: false
+      ConnectionString: ""
+      PoolSize: 50
+      Timeout: 30
+    MongoDB:
+      Enabled: false
+      ConnectionString: ""
+      DatabaseName: ""
+      ConnectTimeout: 30000
+      ServerSelectionTimeout: 30000
+      MaxConnectionPoolSize: 100
+    Redis:
+      Enabled: false
+      ConnectionString: ""
+      Database: 0
+      ConnectTimeout: 5000
+      SyncTimeout: 5000
+
+# Metrics Configuration
+Metrics:
+  Enabled: false
+  EnablePrometheus: false
+  PrometheusPort: 9090
+  PrometheusPath: "/metrics"
+  EnableApplicationInsights: false
+  ApplicationInsightsKey: ""
+
+  # Custom Metrics
+  CustomMetrics: []
+
+  # Collection Settings
+  Collection:
+    Interval: 10000
+    BufferSize: 1000
+    FlushInterval: 60000
+
+# Components Configuration
+Components:
+  AutoDiscovery: true
+  ScanAssemblies: []
+  Lifetime: "Scoped"
+
+  # Component Registration
+  Services: []
+
+  # Module Configuration
+  Modules: []
+
+# Custom Application Settings
+CustomSettings: {}

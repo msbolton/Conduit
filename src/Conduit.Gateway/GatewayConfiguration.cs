@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
+using Conduit.Transports.Core;
 
 namespace Conduit.Gateway
 {
     /// <summary>
-    /// Configuration for the API Gateway.
+    /// Configuration for the Gateway.
     /// </summary>
     public class GatewayConfiguration
     {
@@ -14,13 +16,15 @@ namespace Conduit.Gateway
         public string Name { get; set; } = "Conduit Gateway";
 
         /// <summary>
-        /// Gets or sets the host to listen on.
+        /// Gets or sets the host to listen on (backward compatibility).
         /// </summary>
+        [Obsolete("Use ServerBindings instead")]
         public string Host { get; set; } = "localhost";
 
         /// <summary>
-        /// Gets or sets the port to listen on.
+        /// Gets or sets the port to listen on (backward compatibility).
         /// </summary>
+        [Obsolete("Use ServerBindings instead")]
         public int Port { get; set; } = 8080;
 
         /// <summary>
@@ -84,9 +88,40 @@ namespace Conduit.Gateway
         public int HealthCheckInterval { get; set; } = 30000; // 30 seconds
 
         /// <summary>
-        /// Gets or sets the routes.
+        /// Gets or sets the routes (backward compatibility).
         /// </summary>
+        [Obsolete("Use StaticRoutes instead")]
         public List<RouteConfiguration> Routes { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the server bindings for inbound connections.
+        /// </summary>
+        public List<ServerBinding> ServerBindings { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the client endpoints for outbound connections.
+        /// </summary>
+        public List<ClientEndpoint> ClientEndpoints { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the static routing rules.
+        /// </summary>
+        public List<RouteEntry> StaticRoutes { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets whether to enable connection tracking.
+        /// </summary>
+        public bool EnableConnectionTracking { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the idle connection timeout.
+        /// </summary>
+        public TimeSpan IdleConnectionTimeout { get; set; } = TimeSpan.FromMinutes(30);
+
+        /// <summary>
+        /// Gets or sets the maximum number of concurrent connections.
+        /// </summary>
+        public int MaxConcurrentConnections { get; set; } = 1000;
 
         /// <summary>
         /// Gets or sets whether to enable CORS.
@@ -109,12 +144,29 @@ namespace Conduit.Gateway
         public int BufferSize { get; set; } = 81920; // 80 KB
 
         /// <summary>
+        /// Gets or sets the rate limiting burst capacity multiplier.
+        /// Burst capacity = DefaultRateLimit * BurstCapacityMultiplier
+        /// </summary>
+        public int BurstCapacityMultiplier { get; set; } = 2;
+
+        /// <summary>
+        /// Gets or sets the circuit breaker recovery check interval in milliseconds.
+        /// </summary>
+        public int CircuitBreakerRecoveryInterval { get; set; } = 30000; // 30 seconds
+
+        /// <summary>
+        /// Gets or sets whether to enable per-route circuit breakers.
+        /// When false, circuit breakers are only applied per-transport.
+        /// </summary>
+        public bool EnablePerRouteCircuitBreakers { get; set; } = true;
+
+        /// <summary>
         /// Validates the configuration.
         /// </summary>
         public void Validate()
         {
-            if (Port < 0 || Port > 65535)
-                throw new ArgumentOutOfRangeException(nameof(Port), "Port must be between 0 and 65535");
+            // Skip validation of obsolete properties
+            // Legacy Port property is obsolete, use ServerBindings instead
 
             if (RequestTimeout <= 0)
                 throw new ArgumentOutOfRangeException(nameof(RequestTimeout), "RequestTimeout must be greater than 0");
@@ -133,6 +185,60 @@ namespace Conduit.Gateway
 
             if (HealthCheckInterval <= 0)
                 throw new ArgumentOutOfRangeException(nameof(HealthCheckInterval), "HealthCheckInterval must be greater than 0");
+
+            // Validate new settings
+            if (MaxConcurrentConnections <= 0)
+                throw new ArgumentOutOfRangeException(nameof(MaxConcurrentConnections), "MaxConcurrentConnections must be greater than 0");
+
+            if (IdleConnectionTimeout < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(IdleConnectionTimeout), "IdleConnectionTimeout cannot be negative");
+
+            if (BurstCapacityMultiplier <= 0)
+                throw new ArgumentOutOfRangeException(nameof(BurstCapacityMultiplier), "BurstCapacityMultiplier must be greater than 0");
+
+            if (CircuitBreakerRecoveryInterval <= 0)
+                throw new ArgumentOutOfRangeException(nameof(CircuitBreakerRecoveryInterval), "CircuitBreakerRecoveryInterval must be greater than 0");
+
+            // Validate server bindings
+            foreach (var binding in ServerBindings)
+            {
+                binding.Validate();
+            }
+
+            // Validate client endpoints
+            foreach (var endpoint in ClientEndpoints)
+            {
+                endpoint.Validate();
+            }
+
+            // Validate static routes
+            var routeIds = new HashSet<string>();
+            foreach (var route in StaticRoutes)
+            {
+                if (!routeIds.Add(route.Id))
+                    throw new InvalidOperationException($"Duplicate route ID: {route.Id}");
+            }
+        }
+
+        /// <summary>
+        /// Creates a default configuration with backward compatibility.
+        /// </summary>
+        /// <returns>A default gateway configuration</returns>
+        public static GatewayConfiguration CreateDefault()
+        {
+            var config = new GatewayConfiguration();
+
+            // Add default server binding for HTTP
+            config.ServerBindings.Add(new ServerBinding
+            {
+                Port = 8080,
+                BindAddress = IPAddress.Any,
+                Protocol = Protocol.TCP,
+                DefaultTransport = TransportType.Http,
+                Description = "Default HTTP server binding"
+            });
+
+            return config;
         }
     }
 
