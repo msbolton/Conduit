@@ -76,6 +76,9 @@ public class ComponentLifecycleManager : IComponentLifecycleManager
                 // Attach component
                 await component.OnAttachAsync(context, cancellationToken);
 
+                // Log component manifest information when debug logging is enabled
+                LogComponentManifest(component);
+
                 UpdateComponentState(descriptor, ComponentState.Initialized);
                 _logger?.LogInformation("Component {ComponentId} initialized successfully", componentId);
 
@@ -425,6 +428,57 @@ public class ComponentLifecycleManager : IComponentLifecycleManager
             d.State = newState;
             d.LastError = error;
         });
+    }
+
+    /// <summary>
+    /// Logs component manifest information when debug logging is enabled.
+    /// </summary>
+    private void LogComponentManifest(IPluggableComponent component)
+    {
+        if (_logger?.IsEnabled(LogLevel.Debug) != true)
+            return;
+
+        var manifest = component.Manifest;
+
+        _logger.LogDebug("Component Manifest for {ComponentId}:\n" +
+                        "  Name: {ComponentName}\n" +
+                        "  Version: {ComponentVersion}\n" +
+                        "  Description: {ComponentDescription}\n" +
+                        "  Author: {ComponentAuthor}\n" +
+                        "  License: {ComponentLicense}\n" +
+                        "  Website: {ComponentWebsite}\n" +
+                        "  Repository: {ComponentRepository}\n" +
+                        "  Icon: {ComponentIcon}\n" +
+                        "  Min Framework Version: {MinFrameworkVersion}\n" +
+                        "  Max Framework Version: {MaxFrameworkVersion}\n" +
+                        "  Entry Assembly: {EntryAssembly}\n" +
+                        "  Entry Type: {EntryType}\n" +
+                        "  Configuration Schema: {ConfigurationSchema}\n" +
+                        "  Release Date: {ReleaseDate}\n" +
+                        "  Scope: {ComponentScope}\n" +
+                        "  Tags: [{Tags}]\n" +
+                        "  Dependencies: [{Dependencies}]\n" +
+                        "  Metadata: [{Metadata}]",
+            manifest.Id,
+            manifest.Name,
+            manifest.Version,
+            manifest.Description,
+            manifest.Author,
+            manifest.License,
+            manifest.Website ?? "Not specified",
+            manifest.RepositoryUrl ?? "Not specified",
+            manifest.IconUrl ?? "Not specified",
+            manifest.MinFrameworkVersion,
+            manifest.MaxFrameworkVersion ?? "Not specified",
+            manifest.EntryAssembly ?? "Not specified",
+            manifest.EntryType ?? "Not specified",
+            manifest.ConfigurationSchema ?? "Not specified",
+            manifest.ReleaseDate?.ToString() ?? "Not specified",
+            manifest.Scope?.ToString() ?? "Not specified",
+            string.Join(", ", manifest.Tags),
+            string.Join(", ", manifest.Dependencies.Select(d => $"{d.Name} ({d.MinVersion}-{d.MaxVersion ?? "latest"})")),
+            string.Join(", ", manifest.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}"))
+        );
     }
 }
 
